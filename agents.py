@@ -140,31 +140,80 @@ class RiskAgent:
         return result
 
 class ComplianceAgent:
-    def __init__(self, single_asset_max=0.4, sector_max=0.6, min_assets=4):
+    def __init__(
+        self,
+        single_asset_max=0.4,
+        sector_max=0.6,
+        min_assets=4,
+        max_assets=20,
+        min_weight=0.02,
+        min_sectors=2,
+        weight_sum_tolerance=0.02,
+    ):
         self.single_asset_max = single_asset_max
         self.sector_max = sector_max
         self.min_assets = min_assets
+        self.max_assets = max_assets
+        self.min_weight = min_weight
+        self.min_sectors = min_sectors
+        self.weight_sum_tolerance = weight_sum_tolerance
 
     def check(self, portfolio: List[Dict]):
         issues = []
+
+        # Weight sum — must be ~100%
+        total_weight = sum(item['weight'] for item in portfolio)
+        if abs(total_weight - 1.0) > self.weight_sum_tolerance:
+            issues.append(
+                f"Portfolio weights sum to {total_weight * 100:.1f}% — must be within "
+                f"{self.weight_sum_tolerance * 100:.0f}% of 100%"
+            )
+
+        # Asset count — min
         if len(portfolio) < self.min_assets:
             issues.append(f"Minimum assets requirement not met ({len(portfolio)} < {self.min_assets})")
 
-        # single asset
+        # Asset count — max
+        if len(portfolio) > self.max_assets:
+            issues.append(f"Portfolio exceeds maximum holding count ({len(portfolio)} > {self.max_assets})")
+
+        # Single asset concentration — max
         for item in portfolio:
             if item['weight'] > self.single_asset_max + 1e-9:
-                issues.append(f"Asset {item['ticker']} weight {item['weight']} exceeds max {self.single_asset_max}")
+                issues.append(
+                    f"{item['ticker']} weight {item['weight'] * 100:.1f}% exceeds "
+                    f"single-asset max {self.single_asset_max * 100:.0f}%"
+                )
 
-        # sector aggregation
+        # Minimum position size — avoid near-zero allocations
+        for item in portfolio:
+            if 0 < item['weight'] < self.min_weight - 1e-9:
+                issues.append(
+                    f"{item['ticker']} weight {item['weight'] * 100:.1f}% is below "
+                    f"minimum position size {self.min_weight * 100:.0f}%"
+                )
+
+        # Sector aggregation
         sector_map = {}
         for item in portfolio:
             sector = market_service.get_sector(item['ticker']) or 'Unknown'
             sector_map.setdefault(sector, 0.0)
             sector_map[sector] += item['weight']
 
+        # Sector concentration — max
         for sector, total in sector_map.items():
             if total > self.sector_max + 1e-9:
-                issues.append(f"Sector {sector} weight {total} exceeds max {self.sector_max}")
+                issues.append(
+                    f"Sector '{sector}' weight {total * 100:.1f}% exceeds "
+                    f"sector max {self.sector_max * 100:.0f}%"
+                )
+
+        # Sector diversification — min distinct sectors
+        if len(sector_map) < self.min_sectors:
+            issues.append(
+                f"Portfolio spans only {len(sector_map)} sector(s) — "
+                f"minimum required is {self.min_sectors}"
+            )
 
         return {
             'ok': len(issues) == 0,
