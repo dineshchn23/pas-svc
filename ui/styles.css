@@ -387,7 +387,6 @@ button.sm {
   gap: 14px;
 }
 
-.result-card { }
 .result-card h3 { font-size: 1rem; margin-bottom: 10px; }
 .result-card.wide { grid-column: 1 / -1; }
 
