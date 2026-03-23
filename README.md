@@ -21,6 +21,9 @@ GEMINI_API_KEY=your_google_api_key_here
 GEMINI_MODEL=gemini-2.0-flash   # optional, this is the default
 ```
 
+If you deploy to Vercel, add the same names in the Vercel Environment Variables UI, but paste only the value.
+Example: for `GEMINI_API_KEY`, paste `AIza...`, not `GEMINI_API_KEY=AIza...`.
+
 Obtain a key from https://aistudio.google.com/app/apikey  
 Ensure the **Generative Language API** is enabled for your Google Cloud project.
 

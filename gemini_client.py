@@ -2,15 +2,31 @@ import os
 import re
 from google import genai
 
-GEMINI_KEY = os.getenv('GEMINI_API_KEY')
-# Default model: gemini-2.0-flash (current stable flash model)
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
 PREFERRED_MODELS = (
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',
     'gemini-1.5-flash',
     'gemini-1.5-pro',
 )
+
+
+def _normalize_api_key(api_key_value: str) -> str:
+    """Normalize copied env values to a raw Google API key.
+
+    Accepts common accidental formats such as:
+    - GEMINI_API_KEY=AIza...
+    - "AIza..."
+    - 'AIza...'
+    """
+    if not api_key_value:
+        return ''
+
+    normalized = api_key_value.strip().strip('"').strip("'")
+
+    if normalized.upper().startswith('GEMINI_API_KEY='):
+        normalized = normalized.split('=', 1)[1].strip()
+
+    return normalized
 
 
 def _normalize_model_name(model_value: str) -> str:
@@ -90,12 +106,13 @@ def _build_fallback_candidates(requested_model: str, available_ids: list[str]) -
 
 def generate_insights(prompt: str) -> str:
     """Call Gemini using the official Google Python SDK (google-genai)."""
-    if not GEMINI_KEY:
+    api_key = _normalize_api_key(os.getenv('GEMINI_API_KEY'))
+    if not api_key:
         return '[Gemini API key not set] Mock insight: ' + prompt[:400]
 
-    model_name = _normalize_model_name(GEMINI_MODEL)
+    model_name = _normalize_model_name(os.getenv('GEMINI_MODEL', 'gemini-2.0-flash'))
 
-    client = genai.Client(api_key=GEMINI_KEY)
+    client = genai.Client(api_key=api_key)
     available_ids = _list_available_model_ids(client)
     candidates = _build_fallback_candidates(model_name, available_ids)
     last_error = None
