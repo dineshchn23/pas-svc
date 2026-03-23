@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Analysis System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/ui/styles.css" />
+</head>
+<body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+
+  <main class="shell">
+
+    <header class="hero reveal">
+      <p class="eyebrow">Multi-Agent Orchestration</p>
+      <h1>Portfolio Analysis System</h1>
+      <p class="sub">Risk + Compliance run in <strong>parallel</strong>. Reporting follows Risk. Aggregator merges all outputs.</p>
+    </header>
+
+    <section class="panel reveal" style="--delay:80ms">
+      <h2>Portfolio Input</h2>
+      <p class="hint">Add assets and assign weights &mdash; total should equal 100%.</p>
+      <div class="portfolio-editor">
+        <div class="portfolio-head">
+          <span>Asset / Ticker</span>
+          <span>Weight</span>
+          <span></span>
+        </div>
+        <div id="portfolioRows" class="portfolio-rows"></div>
+        <div class="editor-bar">
+          <button id="addRowBtn" type="button" class="ghost sm">+ Add Asset</button>
+          <button id="resetBtn"  type="button" class="ghost sm">Load Sample</button>
+          <div id="weightSummary" class="weight-summary">Total: 100.0%</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="analyzeBtn">&#9654; Run Analysis</button>
+        <button id="geminiBtn" class="ghost">Test Gemini</button>
+      </div>
+      <p id="status" class="status">Ready.</p>
+    </section>
+
+    <section class="panel reveal pipeline-panel" style="--delay:160ms">
+      <h2>Agent Pipeline</h2>
+      <div class="pipeline">
+        <div class="parallel-group">
+          <span class="parallel-label">&#8741; parallel</span>
+          <div class="agent-node" id="nodeRisk">
+            <div class="node-icon">&#128202;</div>
+            <div class="node-label">Risk Agent</div>
+            <div class="node-sub">VaR &middot; Beta &middot; Sharpe</div>
+            <div class="node-badge" data-state="idle">Waiting</div>
+            <div class="node-time" id="timeRisk"></div>
+          </div>
+          <div class="agent-node" id="nodeCompliance">
+            <div class="node-icon">&#9878;&#65039;</div>
+            <div class="node-label">Compliance Agent</div>
+            <div class="node-sub">Rule check vs policy</div>
+            <div class="node-badge" data-state="idle">Waiting</div>
+            <div class="node-time" id="timeCompliance"></div>
+          </div>
+        </div>
+        <div class="pipe-arrow">&#8594;</div>
+        <div class="agent-node" id="nodeReporting">
+          <div class="node-icon">&#9997;&#65039;</div>
+          <div class="node-label">Reporting Agent</div>
+          <div class="node-sub">Gemini &middot; Narrative</div>
+          <div class="node-badge" data-state="idle">Waiting</div>
+          <div class="node-time" id="timeReporting"></div>
+        </div>
+        <div class="pipe-arrow">&#8594;</div>
+        <div class="agent-node" id="nodeAggregator">
+          <div class="node-icon">&#128256;</div>
+          <div class="node-label">Aggregator</div>
+          <div class="node-sub">Merge &middot; Resolve</div>
+          <div class="node-badge" data-state="idle">Waiting</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="results-layout reveal" style="--delay:240ms">
+      <aside class="panel log-panel">
+        <h3>Activity Log</h3>
+        <div id="activityLog" class="activity-log">
+          <p class="log-empty">No activity yet. Run an analysis to see live events.</p>
+        </div>
+      </aside>
+      <div class="results-grid">
+        <div class="panel result-card" id="cardRisk">
+          <h3>Risk Metrics</h3>
+          <div id="riskContent" class="placeholder-msg">Run analysis to see results</div>
+        </div>
+        <div class="panel result-card" id="cardCompliance">
+          <h3>Compliance</h3>
+          <div id="complianceContent" class="placeholder-msg">Run analysis to see results</div>
+        </div>
+        <div class="panel result-card wide" id="cardInsights">
+          <h3>AI Insights</h3>
+          <div id="insightsContent" class="placeholder-msg">Run analysis to see results</div>
+        </div>
+        <div class="panel result-card wide" id="cardTimings">
+          <h3>Performance</h3>
+          <div id="timingsContent" class="placeholder-msg">Run analysis to see results</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <script src="/ui/app.js" defer></script>
+</body>
+</html>

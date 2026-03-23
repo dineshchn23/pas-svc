@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+langgraph
+yfinance
+pandas
+numpy
+requests
+python-dotenv
+google-genai
