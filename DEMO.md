@@ -63,7 +63,7 @@ LangGraph Orchestrator (adapter)
 1. **API / UI layer** — FastAPI serves the REST endpoints and the single-page UI from the same process on port 8000.
 2. **Orchestration layer** — `SupervisorAgent` manages parallel execution via `ThreadPoolExecutor`. Events are pushed to an `asyncio.Queue` linked to the SSE stream.
 3. **Agent layer** — four focused agents, each responsible for a single concern.
-4. **Integration layer** — `yfinance` for market data, `google-genai` SDK for Gemini, in-memory thread-safe store for the latest result.
+4. **Integration layer** — `yfinance` for market data plus fundamentals enrichment, `google-genai` SDK for Gemini, in-memory thread-safe store for the latest result.
 
 ---
 
@@ -72,8 +72,9 @@ LangGraph Orchestrator (adapter)
 ### Risk Agent
 - Downloads 1 year of daily price history per ticker from Yahoo Finance
 - Computes annualized volatility and mean return per asset
+- Fetches per-asset fundamentals (valuation, yield, analyst target/signal, and quality/leverage fields)
 - Constructs weighted portfolio daily returns
-- Outputs: **Volatility**, **Sharpe Ratio**, **Historical 95% VaR**, **Beta vs SPY**
+- Outputs: **Volatility**, **Sharpe Ratio**, **Historical 95% VaR**, **Beta vs SPY**, and weighted portfolio fundamentals snapshot
 
 ### Compliance Agent
 - Checks seven policy rules simultaneously with Risk:
@@ -88,7 +89,7 @@ LangGraph Orchestrator (adapter)
 
 ### Reporting Agent
 - Waits for both Risk and Compliance to complete
-- Builds a structured prompt containing: holdings, risk metrics, compliance verdict, and sector exposure
+- Builds a structured prompt containing: holdings, risk metrics, weighted fundamentals, compliance verdict, and sector exposure
 - Calls Gemini and requests a three-section investment note:
   - **Overall Take** — largest holding, volatility, Sharpe summary
   - **Risk Readout** — VaR, Beta, top sector concentration
@@ -113,6 +114,7 @@ LangGraph Orchestrator (adapter)
 ### Yahoo Finance (`yfinance`)
 - Fetches 1 year of adjusted close prices for each ticker
 - Fetches sector metadata for compliance sector rollups
+- Fetches fundamentals used for enrichment (market cap, P/E, dividend yield, beta, analyst target, growth, ROE, debt-to-equity, 52-week range, and average volume)
 - All market data is fetched fresh on every analysis run — no caching
 
 ### LangGraph

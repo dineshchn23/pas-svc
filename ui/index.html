@@ -3,113 +3,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio Analysis System</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/ui/styles.css" />
+  <title>Portfolio Analytics Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            fintech: {
+              bg: '#0f172a',
+              card: '#1e293b',
+              accent: '#38bdf8',
+              text: '#e2e8f0',
+              positive: '#22c55e',
+              negative: '#ef4444'
+            }
+          },
+          boxShadow: {
+            soft: '0 12px 30px rgba(2, 6, 23, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/ui/styles.css?v=2" />
 </head>
-<body>
-  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
-  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
-
-  <main class="shell">
-
-    <header class="hero reveal">
-      <p class="eyebrow">Multi-Agent Orchestration</p>
-      <h1>Portfolio Analysis System</h1>
-      <p class="sub">Risk + Compliance run in <strong>parallel</strong>. Reporting follows Risk. Aggregator merges all outputs.</p>
+<body class="bg-fintech-bg text-fintech-text min-h-screen">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+    <header class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">AI Portfolio Analytics</p>
+        <h1 class="text-2xl font-semibold md:text-3xl">Production Portfolio Dashboard</h1>
+        <p class="mt-1 text-sm text-slate-400">Risk, compliance, reporting, and rebalancing with live stream status.</p>
+      </div>
+      <div class="w-full md:w-80">
+        <div class="mb-1 flex items-center justify-between text-xs text-slate-400">
+          <span>Pipeline Progress</span>
+          <span id="progressLabel">0%</span>
+        </div>
+        <div class="h-2 w-full rounded-full bg-slate-800">
+          <div id="progressBar" class="h-2 rounded-full bg-fintech-accent transition-all duration-300" style="width:0%"></div>
+        </div>
+      </div>
     </header>
 
-    <section class="panel reveal" style="--delay:80ms">
-      <h2>Portfolio Input</h2>
-      <p class="hint">Add assets and assign weights &mdash; total should equal 100%.</p>
-      <div class="portfolio-editor">
-        <div class="portfolio-head">
-          <span>Asset / Ticker</span>
-          <span>Weight</span>
-          <span></span>
-        </div>
-        <div id="portfolioRows" class="portfolio-rows"></div>
-        <div class="editor-bar">
-          <button id="addRowBtn" type="button" class="ghost sm">+ Add Asset</button>
-          <button id="resetBtn"  type="button" class="ghost sm">Load Sample</button>
-          <div id="weightSummary" class="weight-summary">Total: 100.0%</div>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="analyzeBtn">&#9654; Run Analysis</button>
-        <button id="geminiBtn" class="ghost">Test Gemini</button>
-      </div>
-      <p id="status" class="status">Ready.</p>
-    </section>
-
-    <section class="panel reveal pipeline-panel" style="--delay:160ms">
-      <h2>Agent Pipeline</h2>
-      <div class="pipeline">
-        <div class="parallel-group">
-          <span class="parallel-label">&#8741; parallel</span>
-          <div class="agent-node" id="nodeRisk">
-            <div class="node-icon">&#128202;</div>
-            <div class="node-label">Risk Agent</div>
-            <div class="node-sub">VaR &middot; Beta &middot; Sharpe</div>
-            <div class="node-badge" data-state="idle">Waiting</div>
-            <div class="node-time" id="timeRisk"></div>
-          </div>
-          <div class="agent-node" id="nodeCompliance">
-            <div class="node-icon">&#9878;&#65039;</div>
-            <div class="node-label">Compliance Agent</div>
-            <div class="node-sub">Rule check vs policy</div>
-            <div class="node-badge" data-state="idle">Waiting</div>
-            <div class="node-time" id="timeCompliance"></div>
+    <section class="mb-6 rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-12">
+        <div class="md:col-span-7">
+          <h2 class="mb-2 text-sm font-semibold text-slate-300">Portfolio Input</h2>
+          <div id="portfolioRows" class="space-y-2"></div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <button id="addRowBtn" type="button" class="rounded-xl bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700">+ Add Asset</button>
+            <button id="sampleBtn" type="button" class="rounded-xl bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700">Load Sample</button>
+            <div id="weightSummary" class="rounded-xl border border-slate-700 px-3 py-2 text-sm">Total: 0.0%</div>
           </div>
         </div>
-        <div class="pipe-arrow">&#8594;</div>
-        <div class="agent-node" id="nodeReporting">
-          <div class="node-icon">&#9997;&#65039;</div>
-          <div class="node-label">Reporting Agent</div>
-          <div class="node-sub">Gemini &middot; Narrative</div>
-          <div class="node-badge" data-state="idle">Waiting</div>
-          <div class="node-time" id="timeReporting"></div>
+        <div class="md:col-span-5 grid gap-3">
+          <div>
+            <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Benchmark</label>
+            <input id="benchmarkInput" value="SPY" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Risk Profile</label>
+            <select id="riskProfileSelect" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
+              <option value="conservative">Conservative</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <input id="stressToggle" type="checkbox" checked class="h-4 w-4" />
+            <label for="stressToggle">Enable stress test (-20% market shock)</label>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="analyzeBtn" type="button" class="rounded-xl bg-fintech-accent px-4 py-2 text-sm font-semibold text-slate-950 hover:brightness-110">Run Analysis</button>
+            <button id="geminiBtn" type="button" class="rounded-xl bg-slate-800 px-4 py-2 text-sm hover:bg-slate-700">Test Gemini</button>
+          </div>
         </div>
-        <div class="pipe-arrow">&#8594;</div>
-        <div class="agent-node" id="nodeAggregator">
-          <div class="node-icon">&#128256;</div>
-          <div class="node-label">Aggregator</div>
-          <div class="node-sub">Merge &middot; Resolve</div>
-          <div class="node-badge" data-state="idle">Waiting</div>
+      </div>
+      <p id="status" class="mt-3 text-sm text-slate-300">Ready.</p>
+    </section>
+
+    <section class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4" id="overviewCards">
+      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Total Return</p><p id="cardTotalReturn" class="mt-1 text-2xl font-semibold">-</p></div>
+      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Volatility</p><p id="cardVolatility" class="mt-1 text-2xl font-semibold">-</p></div>
+      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Sharpe Ratio</p><p id="cardSharpe" class="mt-1 text-2xl font-semibold">-</p></div>
+      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">VaR 95%</p><p id="cardVar" class="mt-1 text-2xl font-semibold">-</p></div>
+    </section>
+
+    <section class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+      <div class="space-y-4 xl:col-span-8">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+            <h3 class="mb-2 text-sm font-semibold">Portfolio Allocation</h3>
+            <canvas id="allocationChart" height="220"></canvas>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+            <h3 class="mb-2 text-sm font-semibold">Sector Allocation</h3>
+            <canvas id="sectorChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Cumulative Returns vs Benchmark</h3>
+          <canvas id="cumulativeChart" height="120"></canvas>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Drawdown</h3>
+          <canvas id="drawdownChart" height="120"></canvas>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-3 text-sm font-semibold">Correlation Heatmap</h3>
+          <div id="correlationGrid" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <div class="space-y-4 xl:col-span-4">
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Live Agent Status</h3>
+          <div id="agentStatus" class="grid grid-cols-2 gap-2 text-xs"></div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Risk Insights</h3>
+          <div id="riskContributionList" class="space-y-2 text-sm"></div>
+          <p class="mt-3 text-xs uppercase tracking-wide text-slate-400">Top 3 Risky Assets</p>
+          <ul id="topRiskyList" class="mt-1 list-disc space-y-1 pl-4 text-sm"></ul>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Compliance</h3>
+          <div id="complianceBadge" class="mb-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold">Pending</div>
+          <div id="complianceViolations" class="space-y-2 text-sm"></div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">AI Insights</h3>
+          <div id="insightsPanel" class="space-y-3 text-sm"></div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
+          <h3 class="mb-2 text-sm font-semibold">Activity Log</h3>
+          <div id="activityLog" class="max-h-72 space-y-2 overflow-y-auto text-xs"></div>
         </div>
       </div>
     </section>
+  </div>
 
-    <div class="results-layout reveal" style="--delay:240ms">
-      <aside class="panel log-panel">
-        <h3>Activity Log</h3>
-        <div id="activityLog" class="activity-log">
-          <p class="log-empty">No activity yet. Run an analysis to see live events.</p>
-        </div>
-      </aside>
-      <div class="results-grid">
-        <div class="panel result-card" id="cardRisk">
-          <h3>Risk Metrics</h3>
-          <div id="riskContent" class="placeholder-msg">Run analysis to see results</div>
-        </div>
-        <div class="panel result-card" id="cardCompliance">
-          <h3>Compliance</h3>
-          <div id="complianceContent" class="placeholder-msg">Run analysis to see results</div>
-        </div>
-        <div class="panel result-card wide" id="cardInsights">
-          <h3>AI Insights</h3>
-          <div id="insightsContent" class="placeholder-msg">Run analysis to see results</div>
-        </div>
-        <div class="panel result-card wide" id="cardTimings">
-          <h3>Performance</h3>
-          <div id="timingsContent" class="placeholder-msg">Run analysis to see results</div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-  <script src="/ui/app.js" defer></script>
+  <script src="/ui/app.js?v=2" defer></script>
 </body>
 </html>

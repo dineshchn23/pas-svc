@@ -8,7 +8,7 @@ Extend this file to create a richer LangGraph flow as desired.
 """
 import importlib
 import traceback
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 langgraph = None
 try:
@@ -17,14 +17,18 @@ except Exception:
     langgraph = None
 
 
-def orchestrate(supervisor, portfolio: List[Dict]) -> Tuple[List[str], Dict]:
+def orchestrate(
+    supervisor,
+    portfolio: List[Dict],
+    analysis_config: Optional[Dict] = None,
+) -> Tuple[List[str], Dict]:
     """Orchestrate agents using LangGraph when available, otherwise fallback.
 
     Returns (tasks, results) same as SupervisorAgent.run.
     """
     if not langgraph:
         # LangGraph not installed — use Supervisor directly
-        return supervisor.run(portfolio)
+        return supervisor.run(portfolio, analysis_config)
 
     # LangGraph is available; attempt to create a simple flow.
     # Because LangGraph APIs vary across versions and installs, keep this
@@ -43,7 +47,7 @@ def orchestrate(supervisor, portfolio: List[Dict]) -> Tuple[List[str], Dict]:
                 pass
 
         # Execute the same sequence as Supervisor for now.
-        return supervisor.run(portfolio)
+        return supervisor.run(portfolio, analysis_config)
     except Exception as e:
         # On any error, fallback to Supervisor
-        return supervisor.run(portfolio)
+        return supervisor.run(portfolio, analysis_config)

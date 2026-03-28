@@ -48,14 +48,14 @@ Implemented primarily in [agents.py](agents.py), with an adapter in [langgraph_o
 
 Implemented in [agents.py](agents.py).
 
-- `RiskAgent`: computes per-asset and portfolio metrics including annualized volatility, Sharpe ratio, historical 95% VaR, and beta versus SPY
+- `RiskAgent`: computes per-asset and portfolio metrics including annualized volatility, Sharpe ratio, historical 95% VaR, beta versus SPY, and weighted fundamentals (forward P/E, dividend yield, analyst upside, total market cap, coverage)
 - `ComplianceAgent`: checks minimum asset count, max single-asset concentration, and max sector concentration
-- `ReportingAgent`: builds a structured prompt from analysis results and requests a concise investment note from Gemini; if Gemini fails or returns weak output, it falls back to a deterministic summary
+- `ReportingAgent`: builds a structured prompt from analysis results (including enriched fundamentals) and requests a concise investment note from Gemini; if Gemini fails or returns weak output, it falls back to a deterministic summary
 - `Aggregator`: normalizes the final output into a single object consumed by the UI and `/results`
 
 ### 4. Integration and Storage Layer
 
-- [market_service.py](market_service.py): wraps `yfinance` to fetch prices and sector metadata
+- [market_service.py](market_service.py): wraps `yfinance` to fetch prices, sector metadata, and per-ticker fundamentals
 - [gemini_client.py](gemini_client.py): wraps `google-genai`, normalizes environment variables, lists available models, and performs model fallback when possible
 - [memory.py](memory.py): simple thread-safe in-memory store for the latest analysis result
 
@@ -109,11 +109,13 @@ Risk and Compliance run concurrently. Reporting waits for both outputs so the Ge
 - Downloads 1 year of price history per ticker
 - Computes daily returns per asset
 - Calculates per-asset annualized volatility and annualized mean return
+- Fetches per-asset fundamentals (sector, industry, valuation, yield, market cap, analyst target, and quality/leverage fields)
 - Builds weighted portfolio returns
 - Calculates portfolio annualized volatility
 - Calculates Sharpe ratio using a fixed 1% annual risk-free rate assumption
 - Calculates annualized historical 95% VaR from the portfolio return distribution
 - Estimates beta versus SPY when benchmark data is available
+- Computes weighted portfolio fundamentals and coverage diagnostics for the UI and report context
 
 ### Compliance logic
 
@@ -133,7 +135,7 @@ All parameters are set in `ComplianceAgent.__init__()` and can be adjusted there
 
 ### Reporting logic
 
-- Builds a structured summary from holdings, risk metrics, and compliance findings
+- Builds a structured summary from holdings, risk metrics, fundamentals snapshot, and compliance findings
 - Requests a short markdown-formatted investment note from Gemini
 - Uses a deterministic fallback summary if Gemini is unavailable or the response is too weak
 
@@ -156,6 +158,7 @@ Used in [market_service.py](market_service.py).
 
 - fetches historical close prices
 - fetches sector metadata per ticker
+- fetches enriched ticker fundamentals (valuation, yield, analyst, quality/leverage, liquidity fields)
 - acts as the source for both risk calculations and compliance sector rollups
 
 ### LangGraph
@@ -172,11 +175,11 @@ Included as a dependency, but the current implementation uses it as an optional 
 main.py                  FastAPI app, routes, SSE streaming, static UI serving
 agents.py                Supervisor + Risk/Compliance/Reporting/Aggregator agents
 gemini_client.py         Gemini SDK wrapper, env normalization, model fallback
-market_service.py        Market data and sector lookups via yfinance
+market_service.py        Market data, sector, and fundamentals lookups via yfinance
 langgraph_orchestrator.py Optional LangGraph adapter with safe fallback
 memory.py                Thread-safe in-memory result store
 schemas.py               Pydantic request/response models
-ui/                      Single-page demo UI
+ui/                      Single-page demo UI (includes fundamentals snapshot tiles)
 requirements.txt         Python dependencies
 ```
 

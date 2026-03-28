@@ -50,8 +50,14 @@ def home():
 @app.post('/analyze')
 async def analyze(payload: PortfolioRequest):
     portfolio = [p.dict() for p in payload.portfolio]
-    tasks, results = lg_orchestrate(supervisor, portfolio)
-    store.set('last_result', results)
+    analysis_config = payload.analysis_config.dict() if payload.analysis_config else {}
+    tasks, results = lg_orchestrate(supervisor, portfolio, analysis_config)
+    stored_result = dict(results.get('aggregation', {}) or {})
+    if results.get('timings'):
+        stored_result['timings'] = results['timings']
+    if not stored_result:
+        stored_result = results
+    store.set('last_result', stored_result)
     return {
         'tasks': tasks,
         'status': 'completed',
@@ -68,6 +74,7 @@ async def analyze_stream(payload: PortfolioRequest):
     Events: started | agent_running | agent_done | agent_error | aggregated | done | error
     """
     portfolio = [p.dict() for p in payload.portfolio]
+    analysis_config = payload.analysis_config.dict() if payload.analysis_config else {}
     loop = asyncio.get_running_loop()
     q: asyncio.Queue = asyncio.Queue()
 
@@ -76,8 +83,13 @@ async def analyze_stream(payload: PortfolioRequest):
 
     def run_agents():
         try:
-            tasks, results = supervisor.run_with_callback(portfolio, emit)
-            store.set('last_result', results)
+            tasks, results = supervisor.run_with_callback(portfolio, emit, analysis_config)
+            stored_result = dict(results.get('aggregation', {}) or {})
+            if results.get('timings'):
+                stored_result['timings'] = results['timings']
+            if not stored_result:
+                stored_result = results
+            store.set('last_result', stored_result)
             loop.call_soon_threadsafe(q.put_nowait, ('done', {'tasks': tasks}))
         except Exception as exc:
             loop.call_soon_threadsafe(q.put_nowait, ('error', {'message': str(exc)}))
