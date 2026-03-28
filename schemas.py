@@ -19,6 +19,7 @@ class ComplianceRules(BaseModel):
 class AnalysisConfig(BaseModel):
     benchmark: str = 'SPY'
     risk_profile: Literal['conservative', 'moderate', 'aggressive'] = 'moderate'
+    mode: Literal['advanced', 'simple'] = 'advanced'
     stress_test: bool = True
     compliance_rules: ComplianceRules = Field(default_factory=ComplianceRules)
 
@@ -36,6 +37,7 @@ class RiskMetrics(BaseModel):
 class ComplianceResult(BaseModel):
     ok: bool
     issues: List[str]
+    violations: List[dict] = Field(default_factory=list)
 
 class AnalysisResult(BaseModel):
     portfolio: List[PortfolioItem]

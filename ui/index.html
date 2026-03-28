@@ -3,21 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio Analytics Dashboard</title>
+  <title>Portfolio Intelligence System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            fintech: {
-              bg: '#0f172a',
-              card: '#1e293b',
-              accent: '#38bdf8',
-              text: '#e2e8f0',
-              positive: '#22c55e',
-              negative: '#ef4444'
-            }
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif']
           },
           boxShadow: {
             soft: '0 12px 30px rgba(2, 6, 23, 0.35)'
@@ -27,129 +23,234 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/ui/styles.css?v=2" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/ui/styles.css?v=5" />
 </head>
-<body class="bg-fintech-bg text-fintech-text min-h-screen">
-  <div class="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
-    <header class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
-        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">AI Portfolio Analytics</p>
-        <h1 class="text-2xl font-semibold md:text-3xl">Production Portfolio Dashboard</h1>
-        <p class="mt-1 text-sm text-slate-400">Risk, compliance, reporting, and rebalancing with live stream status.</p>
-      </div>
-      <div class="w-full md:w-80">
-        <div class="mb-1 flex items-center justify-between text-xs text-slate-400">
-          <span>Pipeline Progress</span>
-          <span id="progressLabel">0%</span>
-        </div>
-        <div class="h-2 w-full rounded-full bg-slate-800">
-          <div id="progressBar" class="h-2 rounded-full bg-fintech-accent transition-all duration-300" style="width:0%"></div>
-        </div>
-      </div>
-    </header>
-
-    <section class="mb-6 rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-12">
-        <div class="md:col-span-7">
-          <h2 class="mb-2 text-sm font-semibold text-slate-300">Portfolio Input</h2>
-          <div id="portfolioRows" class="space-y-2"></div>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <button id="addRowBtn" type="button" class="rounded-xl bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700">+ Add Asset</button>
-            <button id="sampleBtn" type="button" class="rounded-xl bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700">Load Sample</button>
-            <div id="weightSummary" class="rounded-xl border border-slate-700 px-3 py-2 text-sm">Total: 0.0%</div>
-          </div>
-        </div>
-        <div class="md:col-span-5 grid gap-3">
+<body class="min-h-screen bg-slate-900 font-display text-slate-200">
+  <div class="bg-atmosphere min-h-screen py-5 lg:py-7">
+    <div class="w-full max-w-screen-xl mx-auto px-4 lg:px-6 space-y-6">
+      <header class="intelligent-card">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Benchmark</label>
-            <input id="benchmarkInput" value="SPY" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm" />
+            <p class="text-xs uppercase tracking-[0.26em] text-cyan-400">Portfolio Intelligence Engine</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight lg:text-3xl">AI Portfolio Intelligence Dashboard</h1>
+            <p class="mt-2 max-w-3xl text-sm text-slate-400">Decision-first portfolio monitoring with explainable insights across performance, composition, risk, and compliance.</p>
           </div>
-          <div>
-            <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Risk Profile</label>
-            <select id="riskProfileSelect" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
-              <option value="conservative">Conservative</option>
-              <option value="moderate" selected>Moderate</option>
-              <option value="aggressive">Aggressive</option>
-            </select>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <input id="stressToggle" type="checkbox" checked class="h-4 w-4" />
-            <label for="stressToggle">Enable stress test (-20% market shock)</label>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button id="analyzeBtn" type="button" class="rounded-xl bg-fintech-accent px-4 py-2 text-sm font-semibold text-slate-950 hover:brightness-110">Run Analysis</button>
-            <button id="geminiBtn" type="button" class="rounded-xl bg-slate-800 px-4 py-2 text-sm hover:bg-slate-700">Test Gemini</button>
+          <div class="flex items-center justify-end gap-3">
+            <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-1">
+              <div class="grid grid-cols-2 gap-1">
+                <button id="advancedModeBtn" type="button" class="mode-btn mode-btn-active">Advanced</button>
+                <button id="simpleModeBtn" type="button" class="mode-btn">Simple</button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <p id="status" class="mt-3 text-sm text-slate-300">Ready.</p>
-    </section>
+      </header>
 
-    <section class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4" id="overviewCards">
-      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Total Return</p><p id="cardTotalReturn" class="mt-1 text-2xl font-semibold">-</p></div>
-      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Volatility</p><p id="cardVolatility" class="mt-1 text-2xl font-semibold">-</p></div>
-      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">Sharpe Ratio</p><p id="cardSharpe" class="mt-1 text-2xl font-semibold">-</p></div>
-      <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft"><p class="text-xs text-slate-400">VaR 95%</p><p id="cardVar" class="mt-1 text-2xl font-semibold">-</p></div>
-    </section>
-
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-12">
-      <div class="space-y-4 xl:col-span-8">
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-            <h3 class="mb-2 text-sm font-semibold">Portfolio Allocation</h3>
-            <canvas id="allocationChart" height="220"></canvas>
+      <section class="intelligent-card">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          <div class="col-span-12 lg:col-span-8">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-sm font-semibold text-slate-200">Portfolio Input</h2>
+              <span id="weightSummary" class="rounded-xl border border-slate-700 px-3 py-2 text-sm">Total: 0.0%</span>
+            </div>
+            <div id="portfolioRows" class="space-y-2"></div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button id="addRowBtn" type="button" class="pill-btn">+ Add Asset</button>
+              <select id="sampleScenarioSelect" class="control-input max-w-[260px]">
+                <option value="diversified_multi_sector">Diversified Multi-Sector</option>
+                <option value="same_sector_tech">Same Sector: Tech Leaders</option>
+                <option value="same_sector_healthcare">Same Sector: Healthcare Majors</option>
+                <option value="mega_cap_blend">Multi-Company Mega-Cap Blend</option>
+                <option value="defensive_income">Defensive Income Mix</option>
+                <option value="growth_plus_stability">Growth + Stability Mix</option>
+              </select>
+              <button id="sampleBtn" type="button" class="pill-btn">Load Scenario</button>
+            </div>
           </div>
-          <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-            <h3 class="mb-2 text-sm font-semibold">Sector Allocation</h3>
-            <canvas id="sectorChart" height="220"></canvas>
+          <div class="col-span-12 lg:col-span-4 grid gap-3">
+            <div>
+              <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Benchmark</label>
+              <select id="benchmarkInput" class="control-input">
+                <option value="SPY">SPY · S&amp;P 500 ETF</option>
+                <option value="^NSEI">^NSEI · NIFTY 50</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs uppercase tracking-wide text-slate-400">Risk Profile</label>
+              <select id="riskProfileSelect" class="control-input">
+                <option value="conservative">Conservative</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="aggressive">Aggressive</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slate-300">
+              <input id="stressToggle" type="checkbox" checked class="h-4 w-4 accent-cyan-400" />
+              Include stress test (-20% market shock)
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button id="analyzeBtn" type="button" class="run-btn">Run Analysis</button>
+              <button id="geminiBtn" type="button" class="pill-btn">Test Gemini</button>
+            </div>
+            <p id="status" class="text-sm text-slate-300">Ready.</p>
+            <div>
+              <div class="mb-1 flex items-center justify-between text-xs text-slate-400">
+                <span>Pipeline Progress</span>
+                <span id="progressLabel">0%</span>
+              </div>
+              <div class="h-2 rounded-full bg-slate-900">
+                <div id="progressBar" class="h-2 rounded-full bg-cyan-400 transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Cumulative Returns vs Benchmark</h3>
-          <canvas id="cumulativeChart" height="120"></canvas>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Drawdown</h3>
-          <canvas id="drawdownChart" height="120"></canvas>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-3 text-sm font-semibold">Correlation Heatmap</h3>
-          <div id="correlationGrid" class="overflow-x-auto"></div>
-        </div>
-      </div>
+      </section>
 
-      <div class="space-y-4 xl:col-span-4">
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Live Agent Status</h3>
-          <div id="agentStatus" class="grid grid-cols-2 gap-2 text-xs"></div>
-        </div>
+      <main class="space-y-6">
+        <section class="order-1 lg:order-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="kpiRow">
+            <article class="kpi-card">
+              <div class="metric-head"><p id="cardReturnLabel" class="kpi-label">Return</p><i data-lucide="info" class="metric-icon" title="Total gain or loss over the analysis period."></i></div>
+              <p id="cardTotalReturn" class="kpi-value">-</p>
+              <p id="cardReturnContext" class="kpi-context">Awaiting analysis</p>
+            </article>
+            <article class="kpi-card">
+              <div class="metric-head"><p id="cardVolatilityLabel" class="kpi-label">Volatility</p><i data-lucide="info" class="metric-icon" title="How much portfolio prices fluctuate."></i></div>
+              <p id="cardVolatility" class="kpi-value">-</p>
+              <p id="cardVolatilityContext" class="kpi-context">Risk level</p>
+            </article>
+            <article class="kpi-card">
+              <div class="metric-head"><p id="cardSharpeLabel" class="kpi-label">Sharpe Ratio</p><i data-lucide="info" class="metric-icon" title="Return earned for each unit of risk taken."></i></div>
+              <p id="cardSharpe" class="kpi-value">-</p>
+              <p id="cardSharpeContext" class="kpi-context">Risk-adjusted return</p>
+            </article>
+            <article class="kpi-card">
+              <div class="metric-head"><p id="cardVarLabel" class="kpi-label">VaR 95%</p><i data-lucide="info" class="metric-icon" title="Estimated downside in adverse conditions."></i></div>
+              <p id="cardVar" class="kpi-value">-</p>
+              <p id="cardVarContext" class="kpi-context">Downside estimate</p>
+            </article>
+            <article class="kpi-card">
+              <div class="metric-head"><p id="cardAlphaLabel" class="kpi-label">Alpha</p><i data-lucide="info" class="metric-icon" title="Outperformance relative to benchmark."></i></div>
+              <p id="cardAlpha" class="kpi-value">-</p>
+              <p id="cardAlphaContext" class="kpi-context">Beating the market</p>
+            </article>
+          </div>
+        </section>
 
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Risk Insights</h3>
-          <div id="riskContributionList" class="space-y-2 text-sm"></div>
-          <p class="mt-3 text-xs uppercase tracking-wide text-slate-400">Top 3 Risky Assets</p>
-          <ul id="topRiskyList" class="mt-1 list-disc space-y-1 pl-4 text-sm"></ul>
-        </div>
+        <section class="order-2 lg:order-1">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div class="col-span-12 lg:col-span-8">
+              <div id="portfolioSummaryCard" class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover min-h-[220px]">Loading portfolio summary...</div>
+            </div>
+            <div class="col-span-12 lg:col-span-4">
+              <div class="sticky top-4 h-fit">
+                <div id="aiSummaryCard" class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md ring-1 ring-cyan-400/40 card-hover min-h-[220px]">Loading AI summary...</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Compliance</h3>
-          <div id="complianceBadge" class="mb-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold">Pending</div>
-          <div id="complianceViolations" class="space-y-2 text-sm"></div>
-        </div>
+        <section>
+          <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
+            <h3 class="section-title">Performance Story: Cumulative Returns vs Benchmark</h3>
+            <p class="section-subtitle">Track whether portfolio growth is sustainable and ahead of the selected benchmark.</p>
+            <div class="chart-frame chart-frame-lg min-h-[320px]"><canvas id="cumulativeChart"></canvas></div>
+          </div>
+        </section>
 
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">AI Insights</h3>
-          <div id="insightsPanel" class="space-y-3 text-sm"></div>
-        </div>
+        <section>
+          <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
+            <h3 class="section-title">Performance Story: Drawdown</h3>
+            <p class="section-subtitle">Understand downside depth and recovery pressure during stress periods.</p>
+            <div class="chart-frame chart-frame-md min-h-[280px]"><canvas id="drawdownChart"></canvas></div>
+          </div>
+        </section>
 
-        <div class="rounded-2xl border border-slate-800 bg-fintech-card p-4 shadow-soft">
-          <h3 class="mb-2 text-sm font-semibold">Activity Log</h3>
-          <div id="activityLog" class="max-h-72 space-y-2 overflow-y-auto text-xs"></div>
-        </div>
-      </div>
-    </section>
+        <section>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch" data-equal-row="composition">
+            <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover" data-equal-card>
+              <h3 class="section-title">Composition: Allocation</h3>
+              <p class="section-subtitle">Where portfolio capital is concentrated by holding.</p>
+              <div class="chart-frame chart-frame-sm min-h-[240px]"><canvas id="allocationChart"></canvas></div>
+            </div>
+            <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover" data-equal-card>
+              <h3 class="section-title">Composition: Sector Allocation</h3>
+              <p class="section-subtitle">Sector structure and diversification quality.</p>
+              <div class="chart-frame chart-frame-sm min-h-[240px]"><canvas id="sectorChart"></canvas></div>
+              <div id="compositionInsights" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch" data-equal-row="riskPair">
+              <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover" data-equal-card>
+                <h3 class="section-title">Risk Intelligence: Risk Contribution</h3>
+                <p class="section-subtitle">Identify which holdings drive portfolio risk most.</p>
+                <div class="chart-frame chart-frame-sm min-h-[240px]"><canvas id="riskContributionChart"></canvas></div>
+              </div>
+              <div id="rollingMetricsPanel" class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover min-h-[280px]" data-equal-card>Loading rolling metrics...</div>
+            </div>
+            <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-4 shadow-md card-hover">
+              <div id="correlationSummary" class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3"></div>
+              <button id="correlationToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left text-sm font-semibold transition-all hover:border-cyan-400/60">
+                <span id="correlationToggleLabel">Show Correlation Matrix</span>
+                <span id="correlationChevron" class="text-xs text-slate-400">Expand</span>
+              </button>
+              <div id="correlationBody" class="space-y-2">
+                <div class="overflow-x-auto">
+                  <div id="correlationGrid"></div>
+                </div>
+                <div id="correlationHighlights" class="grid gap-2 text-sm md:grid-cols-2"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch" data-equal-row="complianceProfile">
+            <div id="compliancePanel" class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover min-h-[280px]" data-equal-card>
+              <h3 class="section-title">Compliance Panel</h3>
+              <div id="complianceBadge" class="mb-2 inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold">Pending</div>
+              <div id="complianceViolations" class="space-y-2 text-sm"></div>
+            </div>
+            <div id="characteristicsPanel" class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover min-h-[280px]" data-equal-card>Loading characteristics...</div>
+          </div>
+        </section>
+
+        <section>
+          <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
+            <button id="aiReportToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all hover:border-cyan-400/60">
+              <span class="text-sm font-semibold">Full AI Report</span>
+              <span id="aiReportChevron" class="text-xs text-slate-400">Collapse</span>
+            </button>
+            <div id="insightsPanel" class="space-y-4 text-sm"></div>
+          </div>
+        </section>
+
+        <section>
+          <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
+            <button id="activityToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all hover:border-cyan-400/60">
+              <span class="text-sm font-semibold">Activity Log</span>
+              <span id="activityChevron" class="text-xs text-slate-400">Collapse</span>
+            </button>
+            <div id="activitySectionBody" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" data-equal-row="activity">
+              <div class="col-span-12 lg:col-span-4" data-equal-card>
+                <h3 class="mb-2 text-xs uppercase tracking-wide text-slate-400">Agent Pipeline</h3>
+                <div id="agentStatus" class="grid grid-cols-2 gap-2 text-xs"></div>
+              </div>
+              <div class="col-span-12 lg:col-span-8" data-equal-card>
+                <h3 class="mb-2 text-xs uppercase tracking-wide text-slate-400">Streaming Events</h3>
+                <div id="activityLog" class="max-h-80 space-y-2 overflow-y-auto text-xs"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
-  <script src="/ui/app.js?v=2" defer></script>
+  <script src="/ui/app.js?v=6" defer></script>
 </body>
 </html>
