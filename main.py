@@ -6,15 +6,17 @@ from typing import List
 import asyncio
 import json
 import os
+import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 
 # load .env from backend folder if present
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
-from schemas import PortfolioRequest
+from schemas import PortfolioRequest, ChatRequest, ChatResponse
 from memory import store
 from agents import SupervisorAgent, RiskAgent, ComplianceAgent, ReportingAgent, Aggregator
+from chat_agent import ChatAgent
 from langgraph_orchestrator import orchestrate as lg_orchestrate
 
 app = FastAPI(title='AI Portfolio Analysis')
@@ -38,6 +40,7 @@ compliance_agent = ComplianceAgent()
 reporting_agent = ReportingAgent()
 aggregator = Aggregator()
 supervisor = SupervisorAgent(risk_agent, compliance_agent, reporting_agent, aggregator)
+chat_agent = ChatAgent()
 
 
 @app.get('/')
@@ -129,6 +132,55 @@ def debug_gemini():
         'model': os.getenv('GEMINI_MODEL'),
         'diagnostic': out,
         'message': 'Gemini reachable' if connected else 'Gemini request failed',
+    }
+
+
+@app.post('/chat', response_model=ChatResponse)
+async def chat(payload: ChatRequest):
+    session_id = (payload.session_id or '').strip() or str(uuid.uuid4())
+    latest_result = store.get('last_result') if payload.use_latest_analysis else {}
+
+    server_history = store.get_chat_history(session_id)
+    merged_history = []
+    if payload.history:
+        merged_history.extend([item.dict() for item in payload.history])
+    if server_history:
+        merged_history.extend(server_history)
+    if merged_history:
+        merged_history = merged_history[-12:]
+
+    # Get session state for follow-up context
+    session_state = store.get_session_state(session_id)
+
+    result = chat_agent.respond(
+        message=payload.message,
+        latest_result=latest_result,
+        mode=payload.mode,
+        history=merged_history,
+        session_state=session_state,
+    )
+
+    # Update session state with this turn's info
+    store.update_session_state(session_id, {
+        'last_intent': result.get('intent'),
+        'last_tickers': result.get('entities', {}).get('tickers', []),
+        'last_sectors': result.get('entities', {}).get('sectors', []),
+    })
+
+    store.append_chat_message(session_id, {'role': 'user', 'content': payload.message})
+    store.append_chat_message(session_id, {'role': 'assistant', 'content': result.get('answer', '')})
+
+    return {
+        'session_id': session_id,
+        'answer': result.get('answer', ''),
+        'confidence': result.get('confidence', 'medium'),
+        'citations': result.get('citations', []),
+        'follow_ups': result.get('follow_ups', []),
+        'source': result.get('source', 'deterministic_fallback'),
+        'intent': result.get('intent', 'unknown'),
+        'entities': result.get('entities', {}),
+        'action_suggestions': result.get('action_suggestions', []),
+        'context_used': result.get('context_used', []),
     }
 
 @app.get('/results')

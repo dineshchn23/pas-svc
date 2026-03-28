@@ -102,7 +102,13 @@ const els = {
   cardVolatilityContext: document.getElementById('cardVolatilityContext'),
   cardSharpeContext: document.getElementById('cardSharpeContext'),
   cardVarContext: document.getElementById('cardVarContext'),
-  cardAlphaContext: document.getElementById('cardAlphaContext')
+  cardAlphaContext: document.getElementById('cardAlphaContext'),
+  chatStatus: document.getElementById('chatStatus'),
+  chatMessages: document.getElementById('chatMessages'),
+  chatForm: document.getElementById('chatForm'),
+  chatInput: document.getElementById('chatInput'),
+  chatSendBtn: document.getElementById('chatSendBtn'),
+  chatQuickActions: document.getElementById('chatQuickActions')
 };
 
 let currentMode = 'advanced';
@@ -115,6 +121,148 @@ let isActivityOpen = true;
 let isCorrelationOpen = true;
 let summaryResizeRaf = null;
 let equalizeResizeRaf = null;
+let chatSessionId = null;
+let isChatSending = false;
+
+function setChatStatus(text, tone = 'info') {
+  if (!els.chatStatus) return;
+  const styles = {
+    info: 'border-slate-700 bg-slate-900/70 text-slate-300',
+    ok: 'border-green-400/40 bg-green-500/10 text-green-300',
+    warn: 'border-red-400/40 bg-red-500/10 text-red-300',
+    busy: 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'
+  };
+  els.chatStatus.className = `rounded-full border px-2 py-1 text-xs ${styles[tone] || styles.info}`;
+  els.chatStatus.textContent = text;
+}
+
+function appendChatBubble(role, text, meta = '', actionSuggestions = []) {
+  if (!els.chatMessages) return;
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`;
+  const safeText = esc(text || '-');
+  
+  let html = safeText;
+  if(meta) html += `<div class="chat-meta">${esc(meta)}</div>`;
+  
+  // Add action chips for assistant messages
+  if (role === 'assistant' && Array.isArray(actionSuggestions) && actionSuggestions.length) {
+    html += '<div class="chat-actions">';
+    actionSuggestions.forEach(action => {
+      const safeAction = esc(action);
+      html += `<button class="action-chip" data-action="${safeAction}">${safeAction}</button>`;
+    });
+    html += '</div>';
+  }
+  
+  bubble.innerHTML = html;
+  els.chatMessages.appendChild(bubble);
+  
+  // Attach event listeners to action chips
+  if (role === 'assistant' && actionSuggestions.length) {
+    bubble.querySelectorAll('.action-chip').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.getAttribute('data-action');
+        if (action) await sendChatMessage(action);
+      });
+    });
+  }
+  
+  els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+}
+
+function renderChatTyping(show) {
+  if (!els.chatMessages) return;
+  const existing = document.getElementById('chatTypingRow');
+  if (show) {
+    if (existing) return;
+    const row = document.createElement('div');
+    row.id = 'chatTypingRow';
+    row.className = 'chat-typing';
+    row.textContent = 'AI is thinking...';
+    els.chatMessages.appendChild(row);
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+    return;
+  }
+  if (existing) {
+    existing.remove();
+  }
+}
+
+function buildChatMeta(data) {
+  const parts = [];
+  if (data?.confidence) {
+    parts.push(`confidence: ${data.confidence}`);
+  }
+  if (data?.source) {
+    parts.push(`source: ${data.source}`);
+  }
+  if (Array.isArray(data?.citations) && data.citations.length) {
+    parts.push(`citations: ${data.citations.slice(0, 3).join(', ')}`);
+  }
+  if (Array.isArray(data?.follow_ups) && data.follow_ups.length) {
+    parts.push(`next: ${data.follow_ups.slice(0, 2).join(' | ')}`);
+  }
+  return parts.join(' · ');
+}
+
+function getActionSuggestions(data) {
+  // Return action_suggestions from the response, fallback to follow_ups for backward compatibility
+  if (Array.isArray(data?.action_suggestions) && data.action_suggestions.length) {
+    return data.action_suggestions.slice(0, 4);
+  }
+  if (Array.isArray(data?.follow_ups) && data.follow_ups.length) {
+    return data.follow_ups.slice(0, 4);
+  }
+  return [];
+}
+
+async function sendChatMessage(message) {
+  const prompt = String(message || '').trim();
+  if (!prompt || isChatSending) return;
+
+  isChatSending = true;
+  if (els.chatSendBtn) els.chatSendBtn.disabled = true;
+  setChatStatus('Sending...', 'busy');
+  appendChatBubble('user', prompt);
+  renderChatTyping(true);
+
+  try {
+    const payload = {
+      message: prompt,
+      session_id: chatSessionId,
+      mode: currentMode,
+      use_latest_analysis: true,
+      history: []
+    };
+
+    const response = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chat error ${response.status}: ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    chatSessionId = data.session_id || chatSessionId;
+    renderChatTyping(false);
+    const actions = getActionSuggestions(data);
+    appendChatBubble('assistant', data.answer || 'No answer returned.', buildChatMeta(data), actions);
+    setChatStatus('Ready', 'ok');
+    addLog('AI chat response received', 'done');
+  } catch (err) {
+    renderChatTyping(false);
+    appendChatBubble('assistant', 'I could not process that request right now. Please try again.');
+    setChatStatus('Error', 'warn');
+    addLog('AI chat failed', 'error', String(err.message || err));
+  } finally {
+    isChatSending = false;
+    if (els.chatSendBtn) els.chatSendBtn.disabled = false;
+  }
+}
 
 function fmtPct(v) {
   return v == null ? '-' : `${(v * 100).toFixed(2)}%`;
@@ -1261,6 +1409,19 @@ function initApp() {
   els.geminiBtn?.addEventListener('click', testGemini);
   els.advancedModeBtn?.addEventListener('click', () => setMode('advanced'));
   els.simpleModeBtn?.addEventListener('click', () => setMode('simple'));
+  els.chatForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const value = els.chatInput?.value || '';
+    if (!value.trim()) return;
+    els.chatInput.value = '';
+    await sendChatMessage(value);
+  });
+  els.chatQuickActions?.querySelectorAll('.chat-quick').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const q = btn.getAttribute('data-question') || '';
+      await sendChatMessage(q);
+    });
+  });
 
   wireCollapseEvents();
   setCollapseState('ai', true);
@@ -1275,6 +1436,14 @@ function initApp() {
   updateWeightSummary();
   renderEditorPreview();
   setMode('advanced');
+  setChatStatus('Ready', 'info');
+  if (els.chatMessages) {
+    els.chatMessages.innerHTML = '';
+    appendChatBubble(
+      'assistant',
+      'Ask me about your portfolio risk, compliance, returns, or rebalancing. I will use your latest analysis result when available.'
+    );
+  }
   setChartLoadingState(false);
   window.addEventListener('resize', queueSummaryHeightSync);
   window.addEventListener('resize', queueDesktopEqualHeights);

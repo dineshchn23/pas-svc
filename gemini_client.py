@@ -104,7 +104,7 @@ def _build_fallback_candidates(requested_model: str, available_ids: list[str]) -
     return candidates
 
 
-def generate_insights(prompt: str) -> str:
+def generate_insights(prompt: str, max_output_tokens: int = 512, temperature: float = 0.2) -> str:
     """Call Gemini using the official Google Python SDK (google-genai)."""
     api_key = _normalize_api_key(os.getenv('GEMINI_API_KEY'))
     if not api_key:
@@ -123,8 +123,8 @@ def generate_insights(prompt: str) -> str:
                 model=candidate,
                 contents=prompt,
                 config={
-                    'temperature': 0.2,
-                    'max_output_tokens': 512,
+                    'temperature': temperature,
+                    'max_output_tokens': max_output_tokens,
                 },
             )
             if getattr(response, 'text', None):

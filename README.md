@@ -4,6 +4,8 @@ Architecture one-pager: [ARCHITECTURE_ONE_PAGER.md](ARCHITECTURE_ONE_PAGER.md)
 
 This project is a FastAPI-based portfolio analysis service with a single-page demo UI. It combines market data, policy checks, and Gemini-generated commentary behind a lightweight multi-agent orchestration layer.
 
+It also includes an **interactive AI Finance Chat** assistant for comprehensive portfolio and ticker Q&A, grounded on real market data and latest portfolio analysis results.
+
 The current implementation is optimized for a demo flow:
 
 - structured portfolio input in the browser
@@ -239,6 +241,87 @@ http://localhost:8000/
 - `POST /analyze/stream` - streams stage-by-stage analysis events for the UI
 - `GET /results` - returns the last in-memory analysis result
 - `GET /debug/gemini` - performs a Gemini connectivity diagnostic
+- `POST /chat` - AI finance Q&A using latest analysis context and short-lived session memory
+
+## Finance Chat Feature
+
+The `/chat` endpoint provides an interactive, context-aware finance assistant with the following capabilities:
+
+### Core Features
+
+1. **Finance-Only Domain Gate**: Automatically refuses non-finance questions (jokes, coding, personal advice, etc.) before calling Gemini. Redirects users to supported finance topics.
+
+2. **Intent Routing**: Detects user intent:
+   - `portfolio_question`: Portfolio allocation, diversification, sector exposure
+   - `ticker_question`: Research any ticker (sector, valuation, performance)
+   - `portfolio_what_if`: Simulate portfolio changes
+   - `portfolio_comparison`: Compare tickers with portfolio
+   - `finance_general`: General finance education
+   - `out_of_scope`: Non-finance (automatically refused)
+
+3. **Rich Context Assembly**: Builds appropriate context based on intent:
+   - Portfolio context: sector weights, concentration, risk metrics, compliance status
+   - Ticker context: market data, sector, valuation, performance
+   - Combined context for comparisons
+
+4. **Portfolio What-If Simulation**: Estimates impact of:
+   - Reducing/increasing holdings
+   - Adding/removing assets
+   - Replacing holdings
+   - Provides concentration and holdings count deltas
+
+5. **Robust Response Parsing**: Handles fenced JSON, malformed responses, and partial output from Gemini with retry logic.
+
+6. **Intent-Aware Fallback**: If Gemini fails, responds with context-specific fallback:
+   - Diversification fallback includes sector data
+   - Risk fallback includes volatility/VaR
+   - Compliance fallback includes rule status
+   - Ticker fallback uses market data
+
+7. **Interactive UI**: Action chips render follow-up suggestions as clickable buttons below each response.
+
+8. **Session Memory**: Tracks lightweight structured state (last intent, tickers, sectors) for follow-up coherence.
+
+### Example Conversations
+
+**Portfolio Allocation Q&A**:
+```
+User: Is my portfolio diversified?
+Assistant: Your portfolio has 6 holdings across 4 sectors (Tech 35%, Healthcare 25%, Finance 20%, Energy 20%). 
+The concentration is moderate with your largest position at 25%. Consider adding more uncorrelated assets for better diversification.
+[Action chips: "Show sector breakdown", "How much is in tech?", "What are my risks?"]
+```
+
+**Ticker Research**:
+```
+User: Tell me about NVDA
+Assistant: NVDA (NVIDIA) is in the Technology sector. Current price around $120, with a P/E of ~60x. 
+It's a highly volatile growth stock. Not currently in your portfolio.
+[Action chips: "Compare with my portfolio", "Is it a good fit?", "Compare with competitor"]
+```
+
+**What-If Simulation**:
+```
+User: What if I reduce AAPL to 10%?
+Assistant: If you reduce AAPL from 25% to 10%, your portfolio becomes less concentrated (Herfindahl index improves).
+Holdings remain 6. For full re-analysis impact on volatility/Sharpe, run /analyze after making the change.
+[Action chips: "Run full analysis", "Try another change", "Show current weights"]
+```
+
+### Session Behavior
+
+- Each user gets a unique `session_id` (or can provide one for continuity)
+- Chat history is merged from client and server-side storage
+- Session state persists for 24 hours with automatic cleanup
+- Supports up to 20 message pairs per session
+
+### Error Handling
+
+- Finance guardrails catch non-finance topics immediately
+- Failed intent routing defaults to `finance_general`
+- Gemini parse failures trigger deterministic fallback
+- What-if parse errors provide helpful guidance
+- Missing data is explicit ("data not available")
 
 ## Known Constraints
 

@@ -44,3 +44,30 @@ class AnalysisResult(BaseModel):
     risk: dict
     compliance: ComplianceResult
     insights: Optional[dict]
+
+
+class ChatMessage(BaseModel):
+    role: Literal['user', 'assistant']
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    session_id: Optional[str] = Field(default=None, max_length=128)
+    mode: Literal['advanced', 'simple'] = 'advanced'
+    use_latest_analysis: bool = True
+    history: List[ChatMessage] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    answer: str
+    confidence: Literal['high', 'medium', 'low']
+    citations: List[str] = Field(default_factory=list)
+    follow_ups: List[str] = Field(default_factory=list)
+    source: Literal['gemini', 'deterministic_fallback', 'guardrails']
+    # New fields for rich chat interactions (backward compatible)
+    intent: Optional[str] = Field(default=None, description="Detected intent: portfolio_question, ticker_question, etc.")
+    entities: dict = Field(default_factory=dict, description="Extracted entities: tickers, sectors, etc.")
+    action_suggestions: List[str] = Field(default_factory=list, description="Suggested follow-up actions")
+    context_used: List[str] = Field(default_factory=list, description="Context fields used to generate answer")
