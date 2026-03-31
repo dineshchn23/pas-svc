@@ -90,7 +90,6 @@ class IntentRouter:
             - ticker_question
             - portfolio_what_if
             - portfolio_comparison
-            - finance_general
             - out_of_scope
             
             entities_dict contains: tickers, sectors, comparison_type, etc.
@@ -166,10 +165,9 @@ class IntentRouter:
             if any(kw in lower for kw in ['stock', 'ticker', 'company', 'about']):
                 if entities.get('tickers'):
                     return 'ticker_question', entities
-            # If explaining finance concept
+            # If explaining a portfolio/finance concept, treat as portfolio_question
             if any(w in lower for w in ['sharpe', 'volatility', 'beta', 'alpha', 'correlation', 'concentration', 'diversification', 'var']):
-                if not entities.get('tickers'):
-                    return 'finance_general', entities
+                return 'portfolio_question', entities
 
         # Detect portfolio_question (about user's own portfolio)
         if any(kw in lower for kw in IntentRouter.PORTFOLIO_INTENT_KEYWORDS):
@@ -187,7 +185,7 @@ class IntentRouter:
                 return 'ticker_question', entities
             # Finance-news question without an explicit ticker.
             if any(w in lower for w in ['news', 'headline', 'market']):
-                return 'finance_general', entities
+                return 'portfolio_question', entities
 
         # Plain-language company/ticker question without explicit finance terms.
         if entities.get('tickers'):
@@ -200,18 +198,18 @@ class IntentRouter:
 
         # Detect portfolio_question by context
         if any(w in lower for w in ['portfolio', 'allocation', 'diversif', 'allocat', 'concentration']):
-            if any(w in lower for w in ['my', 'our', 'i']):
-                return 'portfolio_question', entities
-            # Without "my/our", could be finance_general
-            return 'finance_general', entities
+            return 'portfolio_question', entities
 
-        # Finance general fallback
-        if entities.get('tickers') or entities.get('sectors'):
-            return 'finance_general', entities
+        # Default: if tickers or sectors were extracted, treat as ticker or portfolio question
+        if entities.get('tickers'):
+            return 'ticker_question', entities
+
+        if entities.get('sectors'):
+            return 'portfolio_question', entities
 
         # Default if we extracted something but unclear
         if entities:
-            return 'finance_general', entities
+            return 'portfolio_question', entities
 
         return 'out_of_scope', {}
 

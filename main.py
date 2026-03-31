@@ -160,11 +160,21 @@ async def chat(payload: ChatRequest):
         session_state=session_state,
     )
 
-    # Update session state with this turn's info
+    # Update session state with this turn's portfolio-specific info
+    portfolio_summary = None
+    if latest_result:
+        risk = (latest_result.get('risk') or {}).get('portfolio', {}) or {}
+        compliance = latest_result.get('compliance') or {}
+        portfolio_summary = {
+            'holdings_count': len(latest_result.get('portfolio', [])),
+            'volatility': risk.get('volatility'),
+            'compliance_ok': compliance.get('ok'),
+        }
     store.update_session_state(session_id, {
         'last_intent': result.get('intent'),
         'last_tickers': result.get('entities', {}).get('tickers', []),
         'last_sectors': result.get('entities', {}).get('sectors', []),
+        'portfolio_summary': portfolio_summary,
     })
 
     store.append_chat_message(session_id, {'role': 'user', 'content': payload.message})
@@ -174,8 +184,6 @@ async def chat(payload: ChatRequest):
         'session_id': session_id,
         'answer': result.get('answer', ''),
         'confidence': result.get('confidence', 'medium'),
-        'citations': result.get('citations', []),
-        'follow_ups': result.get('follow_ups', []),
         'source': result.get('source', 'deterministic_fallback'),
         'intent': result.get('intent', 'unknown'),
         'entities': result.get('entities', {}),

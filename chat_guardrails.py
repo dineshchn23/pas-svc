@@ -18,10 +18,10 @@ class FinanceGuardrails:
     _scope_cache: Dict[str, Tuple[bool, float]] = {}
     _cache_lock = threading.Lock()
 
-    # Fast-path phrases from in-product chips.
+    # Fast-path phrases from in-product portfolio chips.
     ACTION_PHRASES = {
-        'show recent news',
-        'analyze deeper',
+        'compliance check',
+        'risk analysis',
         'compare with benchmark',
         'show sector breakdown',
         'suggest rebalancing',
@@ -169,23 +169,21 @@ class FinanceGuardrails:
         """Return a helpful refusal for out-of-scope questions."""
         return {
             'answer': (
-                'I can only help with finance and portfolio questions. '
-                'I can answer questions about stock portfolios, diversification, sector allocation, '
-                'risk analysis, individual tickers, benchmarking, and portfolio optimization. '
-                'Please ask about something related to investments or finance.'
+                'I can only help with portfolio analysis questions. '
+                'I can answer questions about your portfolio holdings, sector allocation, '
+                'risk analysis, compliance checks, ticker-level insights, and rebalancing suggestions. '
+                'Please ask about something related to your portfolio or a specific ticker.'
             ),
             'confidence': 'high',
-            'citations': [],
-            'follow_ups': [
-                'Is my portfolio diversified across sectors?',
-                'Tell me about AAPL or another ticker.',
-                'How should I rebalance my portfolio?',
-                'What is my portfolio volatility and risk?',
-            ],
             'source': 'guardrails',
             'intent': 'out_of_scope',
             'entities': {},
-            'action_suggestions': [],
+            'action_suggestions': [
+                'Compliance Check',
+                'Risk Analysis',
+                'Show sector breakdown',
+                'Suggest rebalancing',
+            ],
             'context_used': [],
         }
 

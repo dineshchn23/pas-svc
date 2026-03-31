@@ -53,7 +53,7 @@ class ChatAgent:
             else:
                 return FinanceGuardrails.get_refusal_response()
 
-        if recovered_intent and intent in ('finance_general', 'out_of_scope'):
+        if recovered_intent and intent in ('out_of_scope',):
             # Prefer recovered ticker-aware intent for short action-chip follow-ups.
             intent = recovered_intent
             entities = recovered_entities
@@ -101,8 +101,6 @@ class ChatAgent:
             response = {
                 'answer': answer,
                 'confidence': self._normalize_confidence(parsed.get('confidence')),
-                'citations': self._normalize_list(parsed.get('citations')),
-                'follow_ups': self._normalize_list(parsed.get('follow_ups'))[:3],
                 'source': 'gemini',
                 'intent': intent,
                 'entities': entities,
@@ -182,13 +180,8 @@ class ChatAgent:
             return self.context_builder.build_combined_context(latest_result, tickers=tickers)
 
         elif intent == 'portfolio_what_if':
-            # Portfolio context for what-if
+            # Portfolio context for risk-focused what-if simulation
             return self.context_builder.build_portfolio_context(latest_result)
-
-        elif intent == 'finance_general':
-            # Minimal context for general finance questions
-            portfolio_context, portfolio_cites = self.context_builder.build_portfolio_context(latest_result)
-            return {'portfolio': portfolio_context}, portfolio_cites
 
         return {}, []
 
@@ -225,19 +218,17 @@ class ChatAgent:
 
         # Build main prompt sections
         sections = [
-            'You are an AI finance assistant specialized in portfolio analysis and investment questions.',
+            'You are an AI assistant specialized in portfolio analysis.',
             'Important constraints:',
             '- Provide educational analysis only, not guaranteed returns or certain outcomes.',
             '- Do not claim certainty; include uncertainty where relevant.',
-            '- Ground your answer in the provided analysis context.',
+            '- Ground your answer in the provided portfolio analysis context.',
             '- If context is missing, say what data you would need.',
             f'- {style}',
             '',
             'Return ONLY strict JSON with keys:',
-            'answer, confidence, citations, follow_ups',
+            'answer, confidence',
             'confidence must be one of: high, medium, low',
-            'citations must reference context paths such as portfolio.sector_allocation or ticker.AAPL',
-            'follow_ups should be 2-3 short useful next questions.',
             '',
         ]
 
@@ -245,14 +236,16 @@ class ChatAgent:
         if intent == 'portfolio_what_if':
             sections.extend([
                 'The user is asking about a hypothetical portfolio change.',
-                'Provide analysis of the estimated impact.',
+                'Provide analysis of the estimated risk and concentration impact.',
                 'Note that full re-analysis may provide different results.',
                 '',
             ])
         elif intent == 'ticker_question':
-            sections.append('The user is asking about a specific ticker/company.\n')
+            sections.append('The user is asking about a specific ticker and its fit with their portfolio.\n')
         elif intent == 'portfolio_question':
-            sections.append('The user is asking about their own portfolio.\n')
+            sections.append('The user is asking about their own portfolio holdings, risk, or compliance.\n')
+        elif intent == 'portfolio_comparison':
+            sections.append('The user is comparing portfolio holdings or performance against a benchmark or ticker.\n')
 
         # Add conversation history
         sections.extend([
@@ -327,39 +320,39 @@ class ChatAgent:
         return None
 
     def _get_action_suggestions(self, intent: str, entities: Dict) -> List[str]:
-        """Generate contextual action suggestions based on intent."""
+        """Generate portfolio-focused action suggestions based on intent."""
         if intent == 'portfolio_question':
             return [
+                'Compliance Check',
+                'Risk Analysis',
                 'Show sector breakdown',
-                'What causes my highest risk?',
-                'Compare with benchmark',
                 'Suggest rebalancing',
             ]
         elif intent == 'ticker_question':
             tickers = entities.get('tickers', [])
             if tickers:
                 return [
-                    f'Compare {tickers[0]} with benchmark',
                     f'How does {tickers[0]} fit with my portfolio?',
-                    'Show recent news',
-                    'Analyze deeper',
+                    'Risk Analysis',
+                    'Compliance Check',
+                    'Compare with benchmark',
                 ]
-            return ['Analyze another ticker', 'Compare tickers']
+            return ['Risk Analysis', 'Compliance Check']
         elif intent == 'portfolio_what_if':
             return [
                 'Show full impact analysis',
-                'What if I do more?',
-                'Check compliance impact',
+                'Compliance Check',
+                'Risk Analysis',
                 'Restore original',
             ]
-        elif intent == 'finance_general':
+        elif intent == 'portfolio_comparison':
             return [
-                'Apply to my portfolio',
-                'Show an example',
-                'Compare with alternatives',
-                'Ask a follow-up',
+                'Risk Analysis',
+                'Compliance Check',
+                'Show sector breakdown',
+                'Suggest rebalancing',
             ]
-        return ['Ask another question', 'Explain simpler']
+        return ['Risk Analysis', 'Compliance Check', 'Show sector breakdown']
 
     def _fallback_answer_contextual(
         self,
@@ -380,8 +373,6 @@ class ChatAgent:
             return self._fallback_whatif_question(whatif_result, latest_result, message)
         elif intent == 'portfolio_comparison':
             return self._fallback_comparison_question(entities, latest_result)
-        elif intent == 'finance_general':
-            return self._fallback_general_question(message)
         else:
             return self._fallback_generic(message, latest_result, mode)
 
@@ -391,15 +382,9 @@ class ChatAgent:
             return {
                 'answer': (
                     'I need portfolio analysis data to answer this. '
-                    'Run portfolio analysis first, then ask about diversification, sector allocation, or risk.'
+                    'Run portfolio analysis first, then ask about diversification, sector allocation, risk, or compliance.'
                 ),
                 'confidence': 'low',
-                'citations': [],
-                'follow_ups': [
-                    'Run analysis and ask how my portfolio is allocated',
-                    'What sectors am I exposed to?',
-                    'How diversified is my portfolio?',
-                ],
             }
 
         risk = ((latest_result or {}).get('risk') or {}).get('portfolio', {}) or {}
@@ -431,14 +416,8 @@ class ChatAgent:
         answer = ' '.join(answer_parts)
 
         return {
-            'answer': answer if answer else 'Your portfolio analysis is available. Ask specific questions about sectors, risk, or diversification.',
+            'answer': answer if answer else 'Your portfolio analysis is available. Ask specific questions about sectors, risk, or compliance.',
             'confidence': 'medium',
-            'citations': ['portfolio', 'risk.portfolio.volatility', 'compliance.ok'],
-            'follow_ups': [
-                'What\'s my top holding?',
-                'How much is in tech?',
-                'Can I reduce risk?',
-            ],
         }
 
     def _fallback_ticker_question(self, entities: Dict, latest_result: Dict) -> Dict:
@@ -449,12 +428,6 @@ class ChatAgent:
             return {
                 'answer': 'Please specify which ticker you\'d like to learn about (e.g., AAPL, MSFT, XLV).',
                 'confidence': 'medium',
-                'citations': [],
-                'follow_ups': [
-                    'Tell me about AAPL',
-                    'How does MSFT compare to my portfolio?',
-                    'What sector is XLV?',
-                ],
             }
 
         ticker = tickers[0]
@@ -470,29 +443,17 @@ class ChatAgent:
         return {
             'answer': answer,
             'confidence': 'medium',
-            'citations': [f'ticker:{ticker}'],
-            'follow_ups': [
-                f'How is {ticker} performing?',
-                f'Does {ticker} fit my portfolio?',
-                'Compare with another ticker',
-            ],
         }
 
     def _fallback_whatif_question(self, whatif_result: Optional[Dict], latest_result: Dict, message: str) -> Dict:
-        """Fallback for what-if questions."""
+        """Fallback for what-if / portfolio risk simulation questions."""
         if not whatif_result:
             return {
                 'answer': (
-                    'I can simulate portfolio changes like "reduce AAPL to 10%," "add XLV," or "replace XOM with V." '
-                    'Please rephrase your what-if question with specific ticker and action.'
+                    'I can simulate portfolio risk changes like "reduce AAPL to 10%," "add XLV," or "replace XOM with V." '
+                    'Please rephrase your what-if question with a specific ticker and action.'
                 ),
                 'confidence': 'low',
-                'citations': [],
-                'follow_ups': [
-                    'What if I reduce my largest holding by 50%?',
-                    'What if I add more tech?',
-                    'Show impact of equal weighting',
-                ],
             }
 
         impact = whatif_result.get('impact', {})
@@ -512,17 +473,11 @@ class ChatAgent:
             direction = 'more' if conc_delta > 0 else 'less'
             parts.append(f'Portfolio becomes {direction} concentrated.')
 
-        parts.append('Use /analyze to compute full impact with re-analysis.')
+        parts.append('Use /analyze to compute full risk impact with re-analysis.')
 
         return {
             'answer': ' '.join(parts),
             'confidence': 'medium',
-            'citations': [],
-            'follow_ups': [
-                'Run full reanalysis',
-                'Try a different change',
-                'Show current portfolio',
-            ],
         }
 
     def _fallback_comparison_question(self, entities: Dict, latest_result: Dict) -> Dict:
@@ -534,57 +489,28 @@ class ChatAgent:
         if len(tickers) >= 2:
             answer += f'Comparing {tickers[0]} vs {tickers[1]}. For detailed metrics, I can analyze sector, valuation, and risk factors.'
         else:
-            answer += 'Please specify which tickers or sectors to compare.'
+            answer += 'Please specify which tickers or sectors to compare against your portfolio.'
 
         return {
             'answer': answer,
             'confidence': 'medium',
-            'citations': [],
-            'follow_ups': [
-                'Compare correlations',
-                'Which is higher risk?',
-                'Show performance over time',
-            ],
-        }
-
-    def _fallback_general_question(self, message: str) -> Dict:
-        """Fallback for general finance questions."""
-        return {
-            'answer': (
-                'This is a general finance question. I can provide educational context, '
-                'but for personalized advice specific to your portfolio, ask about your holdings, allocation, or risk metrics.'
-            ),
-            'confidence': 'medium',
-            'citations': [],
-            'follow_ups': [
-                'How does this apply to my portfolio?',
-                'Show an example with my holdings',
-                'What should I do?',
-            ],
         }
 
     def _fallback_generic(self, message: str, latest_result: Dict, mode: str) -> Dict:
-        """Generic fallback."""
+        """Generic fallback for portfolio analysis questions."""
         risk = ((latest_result or {}).get('risk') or {}).get('portfolio', {}) or {}
-        compliance = (latest_result or {}).get('compliance', {}) or {}
 
         answer = (
             'I can help with portfolio analysis questions. '
-            'Ask about diversification, sector allocation, risk, compliance, or rebalancing.'
+            'Ask about sector allocation, risk metrics, compliance status, or rebalancing suggestions.'
         )
 
         if risk.get('volatility'):
-            answer += f' Your current volatility is {float(risk["volatility"]) * 100:.1f}%.'
+            answer += f' Your current portfolio volatility is {float(risk["volatility"]) * 100:.1f}%.'
 
         return {
             'answer': answer,
             'confidence': 'low',
-            'citations': [],
-            'follow_ups': [
-                'How is my portfolio allocated?',
-                'Is it diversified?',
-                'What are my main risks?',
-            ],
         }
 
     def _normalize_confidence(self, value) -> str:
@@ -592,12 +518,4 @@ class ChatAgent:
         if value in {'high', 'medium', 'low'}:
             return value
         return 'medium'
-
-    def _normalize_list(self, value) -> List[str]:
-        if isinstance(value, list):
-            return [str(item).strip() for item in value if str(item).strip()]
-        if value is None:
-            return []
-        text = str(value).strip()
-        return [text] if text else []
 

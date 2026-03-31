@@ -44,19 +44,19 @@ class InMemoryStore:
                 del self._store[key]
 
     def update_session_state(self, session_id: str, state: Dict) -> None:
-        """Update structured session state for follow-up context."""
+        """Update structured session state for portfolio follow-up context."""
         with self._lock:
             if session_id not in self._session_state:
                 self._session_state[session_id] = {}
             self._session_state[session_id].update(state)
-            # Limit state size
-            if len(self._session_state[session_id]) > 20:
-                # Keep only recent/important keys
-                keep_keys = {'last_intent', 'last_ticker', 'last_tickers', 'last_sectors', 'last_topic', 'portfolio_summary'}
+            # Keep only portfolio-specific state keys to limit size
+            keep_keys = {
+                'last_intent', 'last_ticker', 'last_tickers', 'last_sectors',
+                'portfolio_summary', 'last_risk_summary', 'last_compliance_status',
+            }
+            if len(self._session_state[session_id]) > len(keep_keys):
                 current_keys = set(self._session_state[session_id].keys())
                 for key in current_keys - keep_keys:
-                    if len(self._session_state[session_id]) <= 20:
-                        break
                     del self._session_state[session_id][key]
             self._session_expiry[session_id] = datetime.now() + timedelta(hours=24)
 
