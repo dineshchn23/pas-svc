@@ -194,27 +194,22 @@ function buildChatMeta(data) {
   if (data?.confidence) {
     parts.push(`confidence: ${data.confidence}`);
   }
+  if (data?.intent) {
+    parts.push(`intent: ${data.intent}`);
+  }
   if (data?.source) {
     parts.push(`source: ${data.source}`);
-  }
-  if (Array.isArray(data?.citations) && data.citations.length) {
-    parts.push(`citations: ${data.citations.slice(0, 3).join(', ')}`);
-  }
-  if (Array.isArray(data?.follow_ups) && data.follow_ups.length) {
-    parts.push(`next: ${data.follow_ups.slice(0, 2).join(' | ')}`);
   }
   return parts.join(' · ');
 }
 
 function getActionSuggestions(data) {
-  // Return action_suggestions from the response, fallback to follow_ups for backward compatibility
+  // Return portfolio-focused action suggestions from the response
   if (Array.isArray(data?.action_suggestions) && data.action_suggestions.length) {
     return data.action_suggestions.slice(0, 4);
   }
-  if (Array.isArray(data?.follow_ups) && data.follow_ups.length) {
-    return data.follow_ups.slice(0, 4);
-  }
-  return [];
+  // Default portfolio-focused actions when none provided
+  return ['Compliance Check', 'Risk Analysis', 'Show sector breakdown'];
 }
 
 async function sendChatMessage(message) {
@@ -1441,7 +1436,9 @@ function initApp() {
     els.chatMessages.innerHTML = '';
     appendChatBubble(
       'assistant',
-      'Ask me about your portfolio risk, compliance, returns, or rebalancing. I will use your latest analysis result when available.'
+      'Ask me about your portfolio holdings, risk metrics, compliance status, or rebalancing suggestions. I will use your latest analysis result when available.',
+      '',
+      ['Compliance Check', 'Risk Analysis', 'Show sector breakdown', 'Suggest rebalancing']
     );
   }
   setChartLoadingState(false);

@@ -150,11 +150,86 @@ sequenceDiagram
 
 5. AI chat stage:
 - ChatAgent consumes latest aggregated result plus short-term chat context.
-- Gemini returns grounded answer with confidence/citations; deterministic fallback keeps response stable.
+- Gemini returns grounded answer with confidence; deterministic fallback keeps response stable.
+- Session state tracks portfolio-specific context (last_tickers, last_sectors, portfolio_summary).
 
 6. Aggregation and delivery stage:
 - Aggregator merges risk/compliance/rebalancing/report.
 - FastAPI streams progress via SSE and serves final payload via /results.
+
+## Chat Architecture
+
+### Layer 1: User Interaction (UI)
+- Quick-action buttons focused on portfolio: Compliance Check, Risk Analysis, Sector Breakdown, Suggest Rebalancing.
+- Chat input accepts free-text portfolio queries (tickers, risk, compliance, sector, rebalancing).
+- Response bubbles include contextual action chips (e.g., Compliance Check, Risk Analysis) for follow-up intent capture.
+- Display metadata: confidence and detected intent per response.
+
+### Layer 2: ChatAgent Pipeline
+```
+User message
+    │
+    ▼
+[1] FinanceGuardrails ──── out-of-scope ──► refusal response
+    │ in-scope
+    ▼
+[2] IntentRouter ──── route to: portfolio_question │ ticker_question │
+    │               portfolio_what_if │ portfolio_comparison │ out_of_scope
+    ▼
+[3] FinanceContextBuilder ──── portfolio context │ ticker context │ combined context
+    │
+    ▼
+[4] WhatIfSimulator (only for portfolio_what_if) ──── risk impact estimate
+    │
+    ▼
+[5] Gemini prompt construction (intent-specific, portfolio-grounded)
+    │
+    ▼
+[6] Gemini API call ──── answer + confidence (JSON)
+    │ fallback on failure
+    ▼
+[7] Deterministic intent-aware fallback
+    │
+    ▼
+    ChatResponse { answer, confidence, source, intent, entities, action_suggestions, context_used }
+```
+
+**Supported Intents:**
+| Intent | Description |
+|---|---|
+| `portfolio_question` | Questions about the user's own portfolio holdings, allocation, diversification, or performance |
+| `ticker_question` | Questions about a specific ticker and its relevance to the portfolio |
+| `portfolio_what_if` | Hypothetical portfolio risk simulations (reduce, add, replace holdings) |
+| `portfolio_comparison` | Comparing portfolio performance against a benchmark or specific ticker |
+| `out_of_scope` | Queries outside portfolio analysis scope (guardrailed) |
+
+### Layer 3: Session State / Memory
+- Per-session portfolio context stored in `InMemoryStore` with 24-hour TTL.
+- Tracked state attributes (portfolio-specific only):
+
+| Key | Description |
+|---|---|
+| `last_intent` | Most recent detected intent for follow-up context recovery |
+| `last_tickers` | Tickers mentioned in the previous turn for follow-up resolution |
+| `last_sectors` | Sectors discussed in the previous turn |
+| `portfolio_summary` | Snapshot of portfolio metrics at time of chat (holdings count, volatility, compliance status) |
+| `last_risk_summary` | Risk-specific context for multi-turn risk analysis conversations |
+| `last_compliance_status` | Compliance outcome for multi-turn compliance conversations |
+
+### Chat Response Schema
+```json
+{
+  "session_id": "string",
+  "answer": "string",
+  "confidence": "high | medium | low",
+  "source": "gemini | deterministic_fallback | guardrails",
+  "intent": "portfolio_question | ticker_question | portfolio_what_if | portfolio_comparison | out_of_scope",
+  "entities": { "tickers": ["AAPL"], "sectors": ["technology"] },
+  "action_suggestions": ["Compliance Check", "Risk Analysis", "Show sector breakdown"],
+  "context_used": ["portfolio.sector_allocation", "risk.portfolio.volatility"]
+}
+```
+
 
 ## API Surface
 - GET /

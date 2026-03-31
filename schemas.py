@@ -63,11 +63,8 @@ class ChatResponse(BaseModel):
     session_id: str
     answer: str
     confidence: Literal['high', 'medium', 'low']
-    citations: List[str] = Field(default_factory=list)
-    follow_ups: List[str] = Field(default_factory=list)
     source: Literal['gemini', 'deterministic_fallback', 'guardrails']
-    # New fields for rich chat interactions (backward compatible)
-    intent: Optional[str] = Field(default=None, description="Detected intent: portfolio_question, ticker_question, etc.")
+    intent: Optional[str] = Field(default=None, description="Detected intent: portfolio_question, ticker_question, portfolio_what_if, portfolio_comparison, compliance_check, risk_analysis")
     entities: dict = Field(default_factory=dict, description="Extracted entities: tickers, sectors, etc.")
-    action_suggestions: List[str] = Field(default_factory=list, description="Suggested follow-up actions")
+    action_suggestions: List[str] = Field(default_factory=list, description="Portfolio-focused follow-up actions (e.g., Compliance Check, Risk Analysis)")
     context_used: List[str] = Field(default_factory=list, description="Context fields used to generate answer")
