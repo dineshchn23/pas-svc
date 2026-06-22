@@ -110,17 +110,17 @@
         <section class="order-1 lg:order-2">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="kpiRow">
             <article class="kpi-card">
-              <div class="metric-head"><p id="cardReturnLabel" class="kpi-label">Return</p><i data-lucide="info" class="metric-icon" title="Total gain or loss over the analysis period."></i></div>
+              <div class="metric-head"><p id="cardReturnLabel" class="kpi-label">Return</p><i data-lucide="info" class="metric-icon" title="Total gain or loss over the analysis period."></i></div[...]
               <p id="cardTotalReturn" class="kpi-value">-</p>
               <p id="cardReturnContext" class="kpi-context">Awaiting analysis</p>
             </article>
             <article class="kpi-card">
-              <div class="metric-head"><p id="cardVolatilityLabel" class="kpi-label">Volatility</p><i data-lucide="info" class="metric-icon" title="How much portfolio prices fluctuate."></i></div>
+              <div class="metric-head"><p id="cardVolatilityLabel" class="kpi-label">Volatility</p><i data-lucide="info" class="metric-icon" title="How much portfolio prices fluctuate."></i></div[...]
               <p id="cardVolatility" class="kpi-value">-</p>
               <p id="cardVolatilityContext" class="kpi-context">Risk level</p>
             </article>
             <article class="kpi-card">
-              <div class="metric-head"><p id="cardSharpeLabel" class="kpi-label">Sharpe Ratio</p><i data-lucide="info" class="metric-icon" title="Return earned for each unit of risk taken."></i></div>
+              <div class="metric-head"><p id="cardSharpeLabel" class="kpi-label">Sharpe Ratio</p><i data-lucide="info" class="metric-icon" title="Return earned for each unit of risk taken."></i><[...]
               <p id="cardSharpe" class="kpi-value">-</p>
               <p id="cardSharpeContext" class="kpi-context">Risk-adjusted return</p>
             </article>
@@ -194,7 +194,7 @@
             </div>
             <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-4 shadow-md card-hover">
               <div id="correlationSummary" class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3"></div>
-              <button id="correlationToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left text-sm font-semibold transition-all hover:border-cyan-400/60">
+              <button id="correlationToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left text-sm font[...]
                 <span id="correlationToggleLabel">Show Correlation Matrix</span>
                 <span id="correlationChevron" class="text-xs text-slate-400">Expand</span>
               </button>
@@ -221,7 +221,7 @@
 
         <section>
           <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
-            <button id="aiReportToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all hover:border-cyan-400/60">
+            <button id="aiReportToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all ho[...]">
               <span class="text-sm font-semibold">Full AI Report</span>
               <span id="aiReportChevron" class="text-xs text-slate-400">Collapse</span>
             </button>
@@ -231,31 +231,7 @@
 
         <section>
           <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="section-title">AI Finance Chat</h3>
-                <p class="section-subtitle">Ask about risk, returns, compliance, and portfolio decisions using your latest analysis context.</p>
-              </div>
-              <span id="chatStatus" class="rounded-full border border-slate-700 bg-slate-900/70 px-2 py-1 text-xs text-slate-300">Ready</span>
-            </div>
-            <div id="chatQuickActions" class="mb-3 flex flex-wrap gap-2">
-              <button type="button" class="pill-btn chat-quick" data-question="Summarize my top portfolio risks.">Top Risks</button>
-              <button type="button" class="pill-btn chat-quick" data-question="How can I reduce portfolio volatility without over-concentrating?">Reduce Volatility</button>
-              <button type="button" class="pill-btn chat-quick" data-question="Explain my Sharpe ratio in simple terms.">Explain Sharpe</button>
-              <button type="button" class="pill-btn chat-quick" data-question="What is the minimum rebalance needed to improve compliance?">Compliance Fix</button>
-            </div>
-            <div id="chatMessages" class="chat-messages mb-3"></div>
-            <form id="chatForm" class="grid grid-cols-1 gap-2 md:grid-cols-12">
-              <textarea id="chatInput" rows="2" class="control-input md:col-span-10" placeholder="Ask about your portfolio, risk, compliance, or recommendations..."></textarea>
-              <button id="chatSendBtn" type="submit" class="run-btn md:col-span-2">Send</button>
-            </form>
-            <p class="mt-2 text-xs text-slate-400">Educational insights only, not personalized financial advice.</p>
-          </div>
-        </section>
-
-        <section>
-          <div class="h-full flex flex-col bg-slate-800 rounded-2xl p-5 shadow-md card-hover">
-            <button id="activityToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all hover:border-cyan-400/60">
+            <button id="activityToggle" type="button" class="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left transition-all ho[...]">
               <span class="text-sm font-semibold">Activity Log</span>
               <span id="activityChevron" class="text-xs text-slate-400">Collapse</span>
             </button>
