@@ -32,10 +32,6 @@ This service analyzes a user portfolio and returns explainable intelligence acro
 6. Aggregator
 - Merges all outputs into the single payload consumed by UI and results endpoint.
 
-7. ChatAgent
-- Answers finance/investment/portfolio questions using Gemini with deterministic fallback.
-- Grounds responses on latest aggregated analysis and short-lived chat session history.
-
 ## Component Diagram
 ```mermaid
 flowchart LR
@@ -47,17 +43,14 @@ flowchart LR
     ORCH --> REBAL[RebalancingEngine]
     ORCH --> REPORT[ReportingAgent]
     ORCH --> AGG[Aggregator]
-    API --> CHAT[ChatAgent]
 
     RISK --> MKT[market_service.py\nyfinance prices + fundamentals]
     COMP --> MKT
     REPORT --> GEM[gemini_client.py\nGemini API]
-    CHAT --> GEM
 
     AGG --> MEM[memory.py\nlast_result]
-    CHAT --> MEM[memory.py\nchat:<session_id> history]
     MEM --> API
-    API -->|SSE events + /results + /chat| U
+    API -->|SSE events + /results| U
 
     LG[langgraph_orchestrator.py\noptional adapter] -. fallback/safe wrapper .-> ORCH
 ```
@@ -148,11 +141,7 @@ sequenceDiagram
 - ReportingAgent builds prompt from prior results and calls Gemini via gemini_client.
 - On failure, deterministic fallback keeps output contract stable.
 
-5. AI chat stage:
-- ChatAgent consumes latest aggregated result plus short-term chat context.
-- Gemini returns grounded answer with confidence/citations; deterministic fallback keeps response stable.
-
-6. Aggregation and delivery stage:
+5. Aggregation and delivery stage:
 - Aggregator merges risk/compliance/rebalancing/report.
 - FastAPI streams progress via SSE and serves final payload via /results.
 
@@ -162,7 +151,6 @@ sequenceDiagram
 - POST /analyze/stream (SSE)
 - GET /results
 - GET /debug/gemini
-- POST /chat
 
 ## Request Contract
 - portfolio: array of ticker + weight

@@ -103,7 +103,8 @@ const els = {
   cardSharpeContext: document.getElementById('cardSharpeContext'),
   cardVarContext: document.getElementById('cardVarContext'),
   cardAlphaContext: document.getElementById('cardAlphaContext'),
-  
+  rebalancingStats: document.getElementById('rebalancingStats'),
+  rebalancingRationale: document.getElementById('rebalancingRationale'),
 };
 
 let currentMode = 'advanced';
@@ -111,6 +112,7 @@ let pipelineState = {};
 let completedAgents = new Set();
 let t0 = null;
 let latestResult = null;
+let streamedAggregation = null;
 let isAiReportOpen = true;
 let isActivityOpen = true;
 let isCorrelationOpen = true;
@@ -719,6 +721,11 @@ function renderRollingMetrics(normalized) {
   const portfolio = normalized?.risk?.portfolio || {};
   const drawdownSummary = normalized?.risk_insights?.drawdown_summary || {};
   const topRisky = (normalized?.risk_contribution || []).slice(0, 3);
+  const stressTest = normalized?.risk_insights?.stress_test;
+
+  const stressHtml = stressTest
+    ? `<p class="mt-1 text-sm ${cardTone(stressTest.estimated_portfolio_impact)}">${esc(stressTest.name || 'Market shock')} (${fmtPct(stressTest.shock_assumption)}) &rarr; estimated portfolio impact ${fmtPct(stressTest.estimated_portfolio_impact)}</p>`
+    : `<p class="mt-1 text-sm text-slate-400">Stress test disabled for this run.</p>`;
 
   const body = `
     <div class="grid grid-cols-2 gap-3">
@@ -730,6 +737,10 @@ function renderRollingMetrics(normalized) {
     <div class="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
       <p class="text-xs uppercase tracking-wide text-slate-400">Drawdown Snapshot</p>
       <p class="mt-1 text-sm">Max drawdown ${fmtPct(drawdownSummary.max_drawdown)} · Latest drawdown ${fmtPct(drawdownSummary.latest_drawdown)}</p>
+    </div>
+    <div class="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
+      <p class="text-xs uppercase tracking-wide text-slate-400">Stress Test</p>
+      ${stressHtml}
     </div>
     <div class="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-3">
       <p class="text-xs uppercase tracking-wide text-slate-400">Top 3 Risk Contributors</p>
@@ -887,6 +898,56 @@ function renderRiskContributionChart(normalized) {
     },
     options: chartAxisOptions(6)
   });
+}
+
+function renderRebalancingChart(normalized) {
+  const rebalancing = normalized?.rebalancing || {};
+  const current = rebalancing.current_weights || {};
+  const suggested = rebalancing.suggested_weights || {};
+  const tickers = Object.keys(current).length ? Object.keys(current) : Object.keys(suggested);
+  makeChart('rebalancingChart', {
+    type: 'bar',
+    data: {
+      labels: tickers,
+      datasets: [
+        {
+          label: 'Current %',
+          data: tickers.map((t) => (current[t] || 0) * 100),
+          backgroundColor: '#38bdf8'
+        },
+        {
+          label: 'Suggested %',
+          data: tickers.map((t) => (suggested[t] || 0) * 100),
+          backgroundColor: '#22c55e'
+        }
+      ]
+    },
+    options: chartAxisOptions(8)
+  });
+}
+
+function renderRebalancing(normalized) {
+  const rebalancing = normalized?.rebalancing || {};
+  const before = rebalancing.estimated_volatility_before;
+  const after = rebalancing.estimated_volatility_after;
+  const delta = rebalancing.estimated_volatility_delta;
+  const rationale = rebalancing.rationale || [];
+
+  if (els.rebalancingStats) {
+    els.rebalancingStats.innerHTML = [
+      KPICard({ label: 'Volatility Before', value: fmtPct(before), context: 'Current allocation', toneClass: 'text-slate-200' }),
+      KPICard({ label: 'Volatility After', value: fmtPct(after), context: 'Suggested allocation', toneClass: 'text-slate-200' }),
+      KPICard({ label: 'Change', value: delta == null ? '-' : `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(2)}%`, context: 'Lower is better', toneClass: delta == null ? 'text-slate-200' : (delta <= 0 ? 'text-green-400' : 'text-red-400') })
+    ].join('');
+  }
+
+  if (els.rebalancingRationale) {
+    els.rebalancingRationale.innerHTML = `
+      <p class="mb-1 text-xs uppercase tracking-wide text-slate-400">Rationale</p>
+      <ul class="list-disc space-y-1 pl-4">${rationale.length ? rationale.map((item) => `<li>${esc(item)}</li>`).join('') : '<li>No rebalancing suggestion yet.</li>'}</ul>
+    `;
+  }
+  queueDesktopEqualHeights();
 }
 
 function correlationColor(value) {
@@ -1047,6 +1108,8 @@ function renderAll(result) {
   renderDrawdownChart(latestResult);
   renderRiskContributionChart(latestResult);
   renderCorrelationGrid(latestResult);
+  renderRebalancingChart(latestResult);
+  renderRebalancing(latestResult);
   renderCompliance(latestResult);
   renderInsights(latestResult);
   queueSummaryHeightSync();
@@ -1083,6 +1146,10 @@ function handleEvent(event, data) {
       renderCompliance({ compliance: data.result });
       renderSectorChart(data.result.sectors || {});
     }
+    if (agent === 'rebalancing' && data.result) {
+      renderRebalancingChart({ rebalancing: data.result });
+      renderRebalancing({ rebalancing: data.result });
+    }
     if (agent === 'reporting' && data.result) {
       renderInsights({ report: data.result, insights: data.result });
       renderTopCards({ report: data.result, benchmark: latestResult?.benchmark || {}, risk: latestResult?.risk || {}, risk_insights: latestResult?.risk_insights || {} });
@@ -1098,6 +1165,9 @@ function handleEvent(event, data) {
   if (event === 'aggregated') {
     setAgentState('aggregator', 'done');
     addLog('Aggregation complete', 'done');
+    if (data?.aggregation) {
+      streamedAggregation = data.aggregation;
+    }
     return;
   }
   if (event === 'done') {
@@ -1155,6 +1225,7 @@ async function runAnalysis() {
 
   t0 = Date.now();
   resetPipelineUi();
+  streamedAggregation = null;
   els.activityLog.innerHTML = '';
   setStatus('Starting analysis...', 'info');
   els.analyzeBtn.disabled = true;
@@ -1191,10 +1262,8 @@ async function runAnalysis() {
       }
     }
 
-    const resultsResponse = await fetch('/results');
-    if (resultsResponse.ok) {
-      const result = await resultsResponse.json();
-      renderAll(result);
+    if (streamedAggregation) {
+      renderAll({ aggregation: streamedAggregation });
     }
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'warn');
@@ -1248,6 +1317,12 @@ function renderInitialPanels() {
   });
   if (els.compositionInsights) {
     els.compositionInsights.innerHTML = '<span class="rounded-full border border-slate-700 bg-slate-900/70 px-2 py-1 text-slate-400">Composition insights available after analysis.</span>';
+  }
+  if (els.rebalancingRationale) {
+    els.rebalancingRationale.innerHTML = '<p class="text-sm text-slate-400">Run analysis to see rebalancing suggestions.</p>';
+  }
+  if (els.rebalancingStats) {
+    els.rebalancingStats.innerHTML = '';
   }
   if (els.correlationSummary) {
     els.correlationSummary.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm text-slate-400 md:col-span-3">Correlation summary will appear after analysis.</div>';
