@@ -1,48 +1,5 @@
 # AI Portfolio Intelligence Dashboard: One-Page Architecture
 
-## Overview
-A concise summary: PAS analyses a user portfolio and returns explainable intelligence across risk, compliance, rebalancing, and AI-generated commentary. It streams stage events to a browser UI and returns a single aggregated payload for quick inspection.
-
-## Problem Statement
-Portfolio analysis requires simultaneous quantification of market risk, policy compliance checks, and a human-readable narrative. Manual workflows are slow and error-prone; PAS automates analytics + policy checks and produces an actionable investment note quickly.
-
-## What We Built (how the system works)
-- FastAPI receives portfolio input and serves the UI.
-- Supervisor orchestrates agents (parallel Risk + Compliance), then runs Rebalancing and Reporting.
-- RiskAgent: market data (yfinance) → per-asset and portfolio metrics (volatility, Sharpe, VaR, beta).
-- ComplianceAgent: policy checks (weights, asset/sector limits, diversification) → pass/fail + issues.
-- ReportingAgent: waits for analytics + compliance, builds structured Gemini prompt, returns 3-part note (Overall Take; Risk Readout; Compliance / Actions); deterministic fallback if needed.
-- Aggregator: merges outputs, stores latest in-memory, streams SSE events to the UI.
-
-### Agent diagram (what each agent does)
-```mermaid
-flowchart LR
-    UI[Browser UI] -->|POST /analyze| API[FastAPI]
-    API --> SUP[Supervisor]
-    SUP --> RISK[RiskAgent\n(fetch prices, compute vol/sharpe/var/beta)]
-    SUP --> COMP[ComplianceAgent\n(policy checks, sector rollups)]
-    SUP --> REBAL[RebalancingEngine\n(suggest weight changes)]
-    SUP --> REP[ReportingAgent\n(build prompt, call Gemini, fallback)]
-    RISK --> MKT[market_service (yfinance, fundamentals)]
-    REP --> GEM[gemini_client (google-genai)]
-    AGG[Aggregator] <-- RISK
-    AGG <-- COMP
-    AGG <-- REBAL
-    AGG <-- REP
-    AGG --> MEM[memory.py (last_result)]
-    MEM --> API
-    API -->|SSE + /results| UI
-```
-
-## Section links (map to detailed sections in this file)
-- Overview → [Purpose](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#purpose)
-- Problem Statement → [Purpose](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#purpose)
-- What We Built → [System At A Glance](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#system-at-a-glance) and [Core Agents And Roles](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#core-agents-and-roles)
-- Architecture diagrams → [Component Diagram](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#component-diagram)
-- Runtime flow → [Runtime Sequence](https://github.com/dineshchn23/pas-svc/blob/master/ARCHITECTURE_ONE_PAGER.md#runtime-sequence)
-
----
-
 ## Purpose
 This service analyzes a user portfolio and returns explainable intelligence across risk, compliance, rebalancing, and AI commentary.
 
@@ -51,7 +8,7 @@ This service analyzes a user portfolio and returns explainable intelligence acro
 - UI: Single-page app in ui/
 - Market data source: yfinance wrapper
 - AI narrative source: Gemini (with deterministic fallback)
-- Orchestration: Supervisor pipeline (LangGraph adapter is an optional fallback wrapper)
+- Orchestration: Supervisor pipeline (LangGraph adapter is optional fallback wrapper)
 - State: in-memory latest-result store
 
 ## Core Agents And Roles
@@ -155,14 +112,14 @@ sequenceDiagram
 ## Component Integration Matrix
 | Component | Internal Responsibility | AI Integration | Third-Party Integrations |
 |---|---|---|---|
-| UI (ui/index.html, ui/app.js) | Input capture, rendering charts/cards, streaming status updates | Consumes AI report produced by backend ReportingAgent | Tailwind CSS, Chart.js, Lucide, browser fetc[...]|
-| API Layer (main.py) | Route handling, validation wiring, static UI serving, SSE event streaming | Exposes AI diagnostics and returns AI-enriched payloads | FastAPI, Starlette responses/static f[...]|
+| UI (ui/index.html, ui/app.js) | Input capture, rendering charts/cards, streaming status updates | Consumes AI report produced by backend ReportingAgent | Tailwind CSS, Chart.js, Lucide, browser[...]
+| API Layer (main.py) | Route handling, validation wiring, static UI serving, SSE event streaming | Exposes AI diagnostics and returns AI-enriched payloads | FastAPI, Starlette responses/static f[...]
 | Schema Layer (schemas.py) | Request contract and config validation | Ensures AI mode flags and config shape are valid before execution | Pydantic |
 | SupervisorAgent | Pipeline orchestration and stage sequencing | Coordinates when AI reporting can run after analytics context exists | concurrent.futures ThreadPoolExecutor |
 | RiskAgent | Portfolio analytics and risk intelligence generation | Supplies data-grounded context consumed by AI report generation | pandas, numpy, market_service (yfinance-backed) |
-| ComplianceAgent | Rule checks, violations, profile-based policy enforcement | Supplies compliance context to ReportingAgent prompt and recommendations | market_service sector lookups (yfinance-[...]) |
+| ComplianceAgent | Rule checks, violations, profile-based policy enforcement | Supplies compliance context to ReportingAgent prompt and recommendations | market_service sector lookups (yfinance-[...]
 | RebalancingEngine | Heuristic rebalance suggestions and risk-impact estimate | Provides recommendation context that AI can explain in narrative form | numpy (via risk covariance data) |
-| ReportingAgent | Structured insight generation and normalization | Direct Gemini invocation, parse/normalize output, fallback narrative generation | google-genai (through gemini_client), json u[...]|
+| ReportingAgent | Structured insight generation and normalization | Direct Gemini invocation, parse/normalize output, fallback narrative generation | google-genai (through gemini_client), json u[...]
 | Aggregator | Consolidates final payload for UI/API | Packages AI report and deterministic metadata with analytics outputs | Standard library only |
 | Market Service (market_service.py) | Data acquisition + short-lived caching | Indirectly supports AI by supplying factual market context | yfinance, pandas, threading |
 | Gemini Client (gemini_client.py) | Model request abstraction, diagnostics, fallback model behavior | Core AI gateway for ReportingAgent | google-genai, environment configuration |
