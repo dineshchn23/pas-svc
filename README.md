@@ -1,6 +1,6 @@
 # AI Portfolio Analysis System
 
-Architecture one-pager: [ARCHITECTURE_ONE_PAGER.md](ARCHITECTURE_ONE_PAGER.md)
+Architecture one-pager: [ARCHITECTURE.md](https://github.com/dineshchn23/pas-svc/blob/master/arch.md)
 
 This project is a FastAPI-based portfolio analysis service with a single-page demo UI. It combines market data, policy checks, and Gemini-generated commentary behind a lightweight multi-agent orchestration layer.
 
